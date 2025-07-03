@@ -216,13 +216,17 @@
             text-align: center;
             font-weight: 600;
             color: #475569;
-            padding: 0.5rem;
+            padding: 0.75rem; /* Match calendar-day padding */
+            border: 1px solid transparent; /* Mimic calendar-day border for box model consistency */
+            border-radius: 0.75rem; /* Match calendar-day border-radius for consistency */
+            box-sizing: border-box; /* Ensure padding/border included in width */
+            min-width: 0; /* Allow shrinking in grid */
         }
         .calendar-day {
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 0.75rem;
-            padding: 0.75rem;
+            padding: 0.75rem; /* Ensure this is consistent */
             min-height: 120px; /* Increased height for content */
             display: flex;
             flex-direction: column;
@@ -231,6 +235,7 @@
             transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
             position: relative; /* For cumulative total positioning */
             min-width: 0; /* Allow grid items to shrink */
+            box-sizing: border-box; /* Ensure padding/border included in width */
         }
         .calendar-day:hover {
             background-color: #eff6ff; /* Light blue on hover */
@@ -807,6 +812,7 @@
             <!-- Adjusted padding for mobile: px-2 py-4 -->
             <div class="mb-8 px-2 py-4 md:p-6 bg-gray-50 rounded-xl shadow-inner">
                 <div id="calendarContentWrapper">
+                    <!-- The header row is now explicitly a grid for alignment -->
                     <div class="calendar-grid-header-row">
                         <div class="calendar-day-header">Sun</div>
                         <div class="calendar-day-header">Mon</div>
@@ -1219,7 +1225,7 @@
         const editTransactionModal = document.getElementById('editTransactionModal');
         const closeEditModalBtn = document.getElementById('closeEditModalBtn');
         const editTransactionTypeInput = document.getElementById('editTransactionType');
-        const editTransactionNameInput = document = document.getElementById('editTransactionName');
+        const editTransactionNameInput = document.getElementById('editTransactionName');
         const editTransactionAmountInput = document.getElementById('editTransactionAmount');
         const editTransactionRepeatInput = document.getElementById('editTransactionRepeat');
         const editTransactionRepeatGroup = document.getElementById('editTransactionRepeatGroup');
@@ -1614,8 +1620,12 @@
             if (isMobileView()) {
                 // Changed from minmax(80px, 1fr) to 1fr to allow full flexibility
                 calendarDaysEl.style.gridTemplateColumns = 'repeat(7, 1fr)'; 
+                calendarGridHeaderRow.style.gridTemplateColumns = 'repeat(7, 1fr)'; // Match header to days
+                calendarGridHeaderRow.style.gap = '0.4rem'; // Match header to days
             } else {
                 calendarDaysEl.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Default for desktop
+                calendarGridHeaderRow.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Match header to days
+                calendarGridHeaderRow.style.gap = '0.5rem'; // Match header to days
             }
 
             currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
