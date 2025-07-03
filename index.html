@@ -12,7 +12,7 @@
     <!-- Apple Touch Icon and Web App Meta Tags for iOS Home Screen -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Money Calendar">
+    <meta name="apple-mobile-web-app-title" content="Money">
     <!-- Explicitly specify size for apple-touch-icon -->
     <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/50/FFFFFF/money-bag.png">
     
@@ -24,6 +24,10 @@
             font-family: 'Inter', sans-serif;
             background-color: #f0f4f8; /* Light blue-gray background */
             color: #334155; /* Darker text color */
+        }
+        /* New style to prevent body scrolling when modal is open */
+        body.modal-open {
+            overflow: hidden;
         }
         .container {
             max-width: 1200px; /* Wider container for calendar */
@@ -266,6 +270,9 @@
             position: relative;
             transform: translateY(-20px);
             transition: transform 0.3s ease-in-out;
+            /* Allow internal scrolling for modal content */
+            max-height: 90vh; /* Limit height to viewport height */
+            overflow-y: auto; /* Enable scrolling within the modal */
         }
         .modal.show .modal-content {
             transform: translateY(0);
@@ -933,10 +940,12 @@
             addModalDateEl.textContent = new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
             renderAddModalTransactions(date);
             addTransactionModal.classList.add('show');
+            document.body.classList.add('modal-open'); // Add class to body to prevent scrolling
         }
 
         function closeAddModal() {
             addTransactionModal.classList.remove('show');
+            document.body.classList.remove('modal-open'); // Remove class from body
             // Clear form fields when closing
             addTransactionTypeInput.value = 'expense';
             addTransactionNameInput.value = '';
@@ -1019,10 +1028,12 @@
 
             addTransactionModal.classList.remove('show'); // Hide add modal
             editTransactionModal.classList.add('show'); // Show edit modal
+            document.body.classList.add('modal-open'); // Add class to body to prevent scrolling
         }
 
         function closeEditModal() {
             editTransactionModal.classList.remove('show');
+            document.body.classList.remove('modal-open'); // Remove class from body
             editingTransactionId = null;
             editingTransactionInstanceDate = null;
             renderAddModalTransactions(selectedDate); // Re-render add modal list
@@ -1295,7 +1306,7 @@
             });
         });
 
-        // Event listener for the new "Add Today's Transaction" button
+        // Event listener for the new "Add Transaction" button
         addTodayTransactionBtn.addEventListener('click', () => {
             const today = new Date();
             openAddTransactionModal(formatDate(today));
