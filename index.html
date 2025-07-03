@@ -175,17 +175,17 @@
         .calendar-grid-header-row,
         .calendar-grid-days {
             display: grid;
-            grid-template-columns: repeat(7, minmax(80px, 1fr));
+            grid-template-columns: repeat(7, minmax(80px, 1fr)); /* Default for monthly view */
             gap: 0.5rem;
         }
         .calendar-grid-header-row {
             margin-bottom: 0.5rem; /* Space between headers and days */
         }
 
-        /* Wrapper for zoomable content */
+        /* Wrapper for zoomable content - removed manual zoom, but keeping wrapper for structure */
         #calendarContentWrapper {
-            transform-origin: top left; /* Scale from top left corner */
-            transition: transform 0.2s ease-in-out; /* Smooth transition for zoom */
+            /* transform-origin: top left; */ /* Removed */
+            /* transition: transform 0.2s ease-in-out; */ /* Removed */
         }
 
         .calendar-day-header {
@@ -253,6 +253,51 @@
         .calendar-day-cumulative.negative {
             color: #991b1b; /* Red for negative */
         }
+
+        /* Daily View specific styles */
+        .calendar-daily-view-container .calendar-day {
+            min-height: 300px; /* Larger height for daily view */
+            padding: 1.5rem;
+            align-items: stretch; /* Stretch content to fill width */
+        }
+        .calendar-daily-view-container .calendar-day-transactions {
+            max-height: none; /* Remove max height for daily view */
+            overflow-y: visible; /* Allow full content */
+            margin-bottom: 1rem;
+        }
+        .calendar-daily-view-container .calendar-day-transactions .modal-transaction-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 0.5rem;
+        }
+        .calendar-daily-view-container .calendar-day-transactions .modal-transaction-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .calendar-daily-view-container .calendar-day-transactions .text-xs {
+            font-size: 0.7rem; /* Slightly smaller for details */
+        }
+        .calendar-daily-view-container .calendar-day-cumulative {
+            align-self: flex-start; /* Position at bottom left for daily view */
+            font-size: 1.2rem;
+            margin-top: 1rem;
+        }
+        .calendar-daily-view-container .add-transaction-daily-btn {
+            background-color: #3b82f6; /* Blue for add button */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .calendar-daily-view-container .add-transaction-daily-btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+
 
         /* Modal styles */
         .modal {
@@ -572,8 +617,19 @@
                 <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800 text-center"></h2>
                 <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-end">Next &gt;</button>
             </div>
+
+            <!-- Calendar View Toggle Switch -->
+            <div class="flex justify-center items-center mb-4">
+                <span class="text-sm text-gray-600 mr-2">Monthly View</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="calendarViewToggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+                <span class="text-sm text-gray-600 ml-2">Daily View</span>
+            </div>
+
             <!-- Calendar Grid Container (with horizontal scrolling) -->
-            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
+            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto calendar-daily-view-container">
                 <div id="calendarContentWrapper">
                     <div class="calendar-grid-header-row">
                         <div class="calendar-day-header">Sun</div>
@@ -937,17 +993,11 @@
         const currentMonthYearEl = document.getElementById('currentMonthYear');
         const prevMonthBtn = document.getElementById('prevMonthBtn');
         const nextMonthBtn = document.getElementById('nextMonthBtn');
+        const calendarGridHeaderRow = document.querySelector('.calendar-grid-header-row'); // Get the header row element
 
-        // Zoom variables
-        let currentZoomLevel = 1.0;
-        const zoomStep = 0.1;
-        const minZoom = 0.5;
-        const maxZoom = 2.0;
-
-        // Variables for touch zoom
-        let initialPinchDistance = null;
-        let isPinching = false;
-
+        // New Calendar View Variables
+        let currentCalendarView = 'monthly'; // 'monthly' or 'daily'
+        let currentDailyDate = new Date(); // Tracks the date for daily view
 
         // Tab Elements
         const tabButtons = document.querySelectorAll('.tab-button');
@@ -1011,11 +1061,11 @@
 
         // Confirm Pay Add Modal Elements
         const confirmPayAddModal = document.getElementById('confirmPayAddModal');
-        const closeConfirmPayAddModalBtn = document = document.getElementById('closeConfirmPayAddModalBtn');
+        const closeConfirmPayAddModalBtn = document.getElementById('closeConfirmPayAddModalBtn');
         const modalEstimatedNetPaySpan = document.getElementById('modalEstimatedNetPay');
         const nextPayDateInput = document.getElementById('nextPayDateInput');
         const confirmPayFrequencySelect = document.getElementById('confirmPayFrequencySelect');
-        const confirmAddPayBtn = document.getElementById('addEstimatedPayToCalendarBtn'); // This was already defined, reuse it
+        const confirmAddPayBtn = document.getElementById('confirmAddPayBtn'); 
 
         // Universal Credit Elements (New)
         const ucClaimStatusRadios = document.querySelectorAll('input[name="ucClaimStatus"]');
@@ -1050,6 +1100,9 @@
         const confirmUcFrequencySelect = document.getElementById('confirmUcFrequencySelect');
         const confirmAddUcBtn = document.getElementById('confirmAddUcBtn');
 
+        const calendarViewToggle = document.getElementById('calendarViewToggle'); // New toggle switch element
+
+
         let selectedDate = null; // Date of the day clicked on the calendar
         let editingTransactionId = null; // ID of the transaction being edited
         let editingTransactionInstanceDate = null; // The specific date of the instance being edited
@@ -1057,6 +1110,37 @@
         let estimatedNetPayValue = 0; // To store net pay from estimator
         let estimatedPayFrequencyValue = 'weekly'; // To store frequency from estimator
         let estimatedUcPaymentValue = 0; // To store UC payment from estimator
+
+        // Scrollbar width calculation for modal fix
+        let scrollbarWidth = 0;
+        function getScrollbarWidth() {
+            const outer = document.createElement('div');
+            outer.style.visibility = 'hidden';
+            outer.style.overflow = 'scroll';
+            outer.style.msOverflowStyle = 'scrollbar';
+            document.body.appendChild(outer);
+            const inner = document.createElement('div');
+            outer.appendChild(inner);
+            const width = outer.offsetWidth - inner.offsetWidth;
+            outer.parentNode.removeChild(outer);
+            return width;
+        }
+
+        // Generic modal open/close functions to handle scrollbar shift
+        function openModal(modalElement) {
+            if (scrollbarWidth === 0) {
+                scrollbarWidth = getScrollbarWidth();
+            }
+            document.body.style.paddingRight = `${scrollbarWidth}px`;
+            document.body.classList.add('modal-open');
+            modalElement.classList.add('show');
+        }
+
+        function closeModal(modalElement) {
+            modalElement.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = ''; // Reset padding
+        }
 
 
         // --- Date Utility Functions ---
@@ -1311,7 +1395,13 @@
         // --- Calendar Rendering ---
         function renderCalendar() {
             calendarDaysEl.innerHTML = '';
+            calendarContentWrapper.classList.remove('calendar-daily-view-container'); // Remove daily view specific class
+            calendarGridHeaderRow.style.display = 'grid'; // Show header for monthly view
+            calendarDaysEl.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Set grid for monthly view
+
             currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+            prevMonthBtn.textContent = '< Prev';
+            nextMonthBtn.textContent = 'Next >';
 
             const daysInMonth = getDaysInMonth(currentYear, currentMonth);
             const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth); // 0 (Sun) - 6 (Sat)
@@ -1375,124 +1465,198 @@
                 dayEl.addEventListener('click', () => openAddTransactionModal(formattedDate));
                 calendarDaysEl.appendChild(dayEl);
             }
-            applyZoom(); // Apply zoom after rendering calendar
         }
 
-        // --- Zoom Functionality ---
-        function applyZoom() {
-            calendarContentWrapper.style.transform = `scale(${currentZoomLevel})`;
-        }
+        function renderDailyView() {
+            calendarDaysEl.innerHTML = '';
+            calendarContentWrapper.classList.add('calendar-daily-view-container'); // Add daily view specific class
+            calendarGridHeaderRow.style.display = 'none'; // Hide header for daily view
+            calendarDaysEl.style.gridTemplateColumns = '1fr'; // Single column for daily view
 
-        // Event handlers for zoom
-        function handleWheel(e) {
-            if (!isMobileView()) return; // Only permit zoom in mobile view
-            e.preventDefault(); // Prevent page scrolling
+            currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            prevMonthBtn.textContent = '< Prev Day';
+            nextMonthBtn.textContent = 'Next Day >';
 
-            const oldZoomLevel = currentZoomLevel;
-            if (e.deltaY < 0) { // Zoom in
-                currentZoomLevel = Math.min(maxZoom, currentZoomLevel + zoomStep);
-            } else { // Zoom out
-                currentZoomLevel = Math.max(minZoom, currentZoomLevel - zoomStep);
+            const formattedDate = formatDate(currentDailyDate);
+            const dayEl = document.createElement('div');
+            dayEl.className = 'calendar-day today'; // Always highlight the current day in daily view
+            dayEl.dataset.date = formattedDate;
+
+            dayEl.innerHTML = `
+                <div class="calendar-day-number">${currentDailyDate.getDate()}</div>
+                <div class="calendar-day-transactions"></div>
+                <div class="calendar-day-cumulative"></div>
+                <button class="add-transaction-daily-btn">Add New Transaction</button>
+            `;
+
+            const transactionsForDayEl = dayEl.querySelector('.calendar-day-transactions');
+            const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
+            const addTransactionDailyBtn = dayEl.querySelector('.add-transaction-daily-btn');
+
+            const balanceForThisDay = calculateBalanceUpToDate(currentDailyDate);
+            const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
+
+            if (transactionsOnThisDayForDisplay.length > 0) {
+                transactionsOnThisDayForDisplay.forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = 'modal-transaction-item flex justify-between items-center py-1';
+                    const repeatText = t.repeat !== 'none' ? ` (Repeats ${t.repeat})` : '';
+                    const displayType = t.type === 'income' ? '+' : '-';
+                    const displayAmount = `${displayType}£${t.amount.toFixed(2)}`;
+
+                    div.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-sm">${t.name}</p>
+                            <p class="text-xs text-gray-600">${displayAmount}${repeatText}</p>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="btn-edit" data-id="${t.id}" data-instance-date="${formattedDate}">Edit</button>
+                            <button class="btn-delete" data-id="${t.id}">Delete</button>
+                        </div>
+                    `;
+                    div.querySelector('.btn-edit').addEventListener('click', (e) => {
+                        openEditTransactionModal(parseInt(e.target.dataset.id), e.target.dataset.instanceDate);
+                    });
+                    div.querySelector('.btn-delete').addEventListener('click', (e) => {
+                        const transactionIdToDelete = parseInt(e.target.dataset.id);
+                        transactions = transactions.filter(tx => tx.id !== transactionIdToDelete);
+                        localStorage.setItem('transactions', JSON.stringify(transactions));
+                        showMessage('Transaction deleted!');
+                        renderDailyView(); // Re-render daily view
+                    });
+                    transactionsForDayEl.appendChild(div);
+                });
+            } else {
+                const p = document.createElement('p');
+                p.textContent = 'No entries';
+                p.className = 'text-gray-400 text-center py-4';
+                transactionsForDayEl.appendChild(p);
             }
 
-            if (currentZoomLevel !== oldZoomLevel) {
-                applyZoom();
+            cumulativeEl.textContent = `£${balanceForThisDay.toFixed(2)}`;
+            if (balanceForThisDay >= 0) {
+                cumulativeEl.classList.add('positive');
+                cumulativeEl.classList.remove('negative');
+            } else {
+                cumulativeEl.classList.add('negative');
+                cumulativeEl.classList.remove('positive');
+            }
+
+            addTransactionDailyBtn.addEventListener('click', () => openAddTransactionModal(formattedDate));
+            calendarDaysEl.appendChild(dayEl);
+        }
+
+        function updateCalendarView() {
+            if (currentCalendarView === 'monthly') {
+                renderCalendar();
+            } else { // daily view
+                renderDailyView();
             }
         }
 
-        function handleTouchStart(e) {
-            if (!isMobileView()) return; // Only permit zoom in mobile view
-            if (e.touches.length === 2) {
-                initialPinchDistance = Math.hypot(
-                    e.touches[1].pageX - e.touches[0].pageX,
-                    e.touches[1].pageY - e.touches[0].pageY
-                );
-                isPinching = true;
-            }
-        }
-
-        function handleTouchMove(e) {
-            if (!isMobileView()) return; // Only permit zoom in mobile view
-            if (e.touches.length === 2 && isPinching) {
-                e.preventDefault(); // Prevent scrolling while pinching
-
-                const currentPinchDistance = Math.hypot(
-                    e.touches[1].pageX - e.touches[0].pageX,
-                    e.touches[1].pageY - e.touches[0].pageY
-                );
-
-                if (initialPinchDistance === null) { // Should not happen if touchstart worked, but for safety
-                    initialPinchDistance = currentPinchDistance;
-                    return;
+        calendarViewToggle.addEventListener('change', () => {
+            currentCalendarView = calendarViewToggle.checked ? 'daily' : 'monthly';
+            if (currentCalendarView === 'daily') {
+                // When switching to daily view, set the currentDailyDate to the first day of the current month,
+                // or today's date if today is within the current month.
+                const today = new Date();
+                if (today.getMonth() === currentMonth && today.getFullYear() === currentYear) {
+                    currentDailyDate = new Date(currentYear, currentMonth, today.getDate());
+                } else {
+                    currentDailyDate = new Date(currentYear, currentMonth, 1);
                 }
-
-                // Calculate zoom factor based on change in pinch distance
-                const zoomFactor = currentPinchDistance / initialPinchDistance;
-                let newZoomLevel = currentZoomLevel * zoomFactor;
-
-                // Clamp new zoom level within min/max bounds
-                newZoomLevel = Math.max(minZoom, Math.min(maxZoom, newZoomLevel));
-
-                if (newZoomLevel !== currentZoomLevel) {
-                    currentZoomLevel = newZoomLevel;
-                    applyZoom();
-                }
-                // Update initial pinch distance for the next touchmove event to make zoom continuous
-                initialPinchDistance = currentPinchDistance;
             }
-        }
+            updateCalendarView();
+        });
 
-        function handleTouchEnd() {
-            if (!isMobileView()) return; // Only permit zoom in mobile view
-            initialPinchDistance = null;
-            isPinching = false;
-        }
+        // Event handlers for navigation buttons
+        prevMonthBtn.addEventListener('click', () => {
+            if (currentCalendarView === 'monthly') {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+            } else { // daily view
+                currentDailyDate.setDate(currentDailyDate.getDate() - 1);
+                // Ensure month/year update if crossing boundaries in daily view
+                currentMonth = currentDailyDate.getMonth();
+                currentYear = currentDailyDate.getFullYear();
+            }
+            updateCalendarView();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            if (currentCalendarView === 'monthly') {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+            } else { // daily view
+                currentDailyDate.setDate(currentDailyDate.getDate() + 1);
+                // Ensure month/year update if crossing boundaries in daily view
+                currentMonth = currentDailyDate.getMonth();
+                currentYear = currentDailyDate.getFullYear();
+            }
+            updateCalendarView();
+        });
+
+        // Mobile swipe for daily view
+        let touchStartX = 0;
+        let touchEndX = 0;
 
         function isMobileView() {
             return window.innerWidth < 768; // Tailwind's 'md' breakpoint
         }
 
-        function addZoomListeners() {
-            calendarContentWrapper.addEventListener('wheel', handleWheel, { passive: false });
-            calendarContentWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
-            calendarContentWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
-            calendarContentWrapper.addEventListener('touchend', handleTouchEnd);
-        }
-
-        function removeZoomListeners() {
-            calendarContentWrapper.removeEventListener('wheel', handleWheel);
-            calendarContentWrapper.removeEventListener('touchstart', handleTouchStart);
-            calendarContentWrapper.removeEventListener('touchmove', handleTouchMove);
-            calendarContentWrapper.removeEventListener('touchend', handleTouchEnd);
-            // Reset zoom level when listeners are removed (e.g., switching to desktop view)
-            currentZoomLevel = 1.0;
-            applyZoom();
-        }
-
-        let zoomListenersActive = false; // Track if listeners are currently active
-
-        function checkAndApplyZoomListeners() {
-            if (isMobileView() && !zoomListenersActive) {
-                addZoomListeners();
-                zoomListenersActive = true;
-            } else if (!isMobileView() && zoomListenersActive) {
-                removeZoomListeners();
-                zoomListenersActive = false;
+        calendarContentWrapper.addEventListener('touchstart', (e) => {
+            if (currentCalendarView === 'daily' && isMobileView()) {
+                touchStartX = e.touches[0].clientX;
             }
-        }
+        }, { passive: true }); // Use passive: true for better scroll performance
+
+        calendarContentWrapper.addEventListener('touchmove', (e) => {
+            if (currentCalendarView === 'daily' && isMobileView()) {
+                touchEndX = e.touches[0].clientX;
+            }
+        }, { passive: true });
+
+        calendarContentWrapper.addEventListener('touchend', () => {
+            if (currentCalendarView === 'daily' && isMobileView()) {
+                const swipeThreshold = 50; // Minimum distance for a swipe
+                const swipeDistance = touchEndX - touchStartX;
+
+                if (swipeDistance > swipeThreshold) {
+                    // Swiped right (previous day)
+                    currentDailyDate.setDate(currentDailyDate.getDate() - 1);
+                    currentMonth = currentDailyDate.getMonth();
+                    currentYear = currentDailyDate.getFullYear();
+                    updateCalendarView();
+                } else if (swipeDistance < -swipeThreshold) {
+                    // Swiped left (next day)
+                    currentDailyDate.setDate(currentDailyDate.getDate() + 1);
+                    currentMonth = currentDailyDate.getMonth();
+                    currentYear = currentDailyDate.getFullYear();
+                    updateCalendarView();
+                }
+                // Reset touch positions
+                touchStartX = 0;
+                touchEndX = 0;
+            }
+        });
+
 
         // --- Add Transaction Modal Logic ---
         function openAddTransactionModal(date) {
             selectedDate = date;
             addModalDateEl.textContent = new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
             renderAddModalTransactions(date);
-            addTransactionModal.classList.add('show');
-            document.body.classList.add('modal-open'); // Add class to body to prevent scrolling
+            openModal(addTransactionModal); // Use generic open modal function
         }
 
         function closeAddModal() {
-            addTransactionModal.classList.remove('show');
-            document.body.classList.remove('modal-open'); // Remove class from body
+            closeModal(addTransactionModal); // Use generic close modal function
             // Clear form fields when closing
             addTransactionTypeInput.value = 'expense';
             addTransactionNameInput.value = '';
@@ -1500,7 +1664,7 @@
             addTransactionRepeatInput.value = 'none';
             selectedDate = null;
             toggleAddRepeatOptions(); // Ensure repeat options are visible for next open
-            renderCalendar(); // Re-render calendar to reflect changes
+            updateCalendarView(); // Re-render calendar to reflect changes, based on current view
             renderOverview(); // Also re-render overview in case current day's transactions changed
         }
 
@@ -1569,18 +1733,16 @@
 
             toggleEditRepeatOptions(); // Adjust repeat options visibility
 
-            addTransactionModal.classList.remove('show'); // Hide add modal
-            editTransactionModal.classList.add('show'); // Show edit modal
-            document.body.classList.add('modal-open'); // Add class to body to prevent scrolling
+            closeModal(addTransactionModal); // Hide add modal
+            openModal(editTransactionModal); // Show edit modal
         }
 
         function closeEditModal() {
-            editTransactionModal.classList.remove('show');
-            document.body.classList.remove('modal-open'); // Remove class from body
+            closeModal(editTransactionModal); // Use generic close modal function
             editingTransactionId = null;
             editingTransactionInstanceDate = null;
             renderAddModalTransactions(selectedDate); // Re-render add modal list
-            addTransactionModal.classList.add('show'); // Show add modal again
+            openModal(addTransactionModal); // Show add modal again
         }
 
         // Toggle visibility of repeat options based on transaction type for Edit Modal
@@ -1907,8 +2069,7 @@
             
             confirmPayFrequencySelect.value = estimatedPayFrequencyValue;
 
-            confirmPayAddModal.classList.add('show');
-            document.body.classList.add('modal-open');
+            openModal(confirmPayAddModal); // Use generic open modal function
         });
 
         confirmAddPayBtn.addEventListener('click', () => {
@@ -1939,20 +2100,15 @@
             localStorage.setItem('transactions', JSON.stringify(transactions));
             showMessage(`Estimated net pay of £${estimatedNetPayValue.toFixed(2)} added to calendar for ${selectedNextPayDate}!`);
             
-            closeConfirmPayAddModal(); // Close the new modal
-            renderCalendar();
+            closeModal(confirmPayAddModal); // Use generic close modal function
+            updateCalendarView(); // Re-render calendar based on current view
             renderOverview();
         });
 
-        function closeConfirmPayAddModal() {
-            confirmPayAddModal.classList.remove('show');
-            document.body.classList.remove('modal-open');
-        }
-
-        closeConfirmPayAddModalBtn.addEventListener('click', closeConfirmPayAddModal);
+        closeConfirmPayAddModalBtn.addEventListener('click', () => closeModal(confirmPayAddModal));
         confirmPayAddModal.addEventListener('click', (e) => {
             if (e.target === confirmPayAddModal) {
-                closeConfirmPayAddModal();
+                closeModal(confirmPayAddModal);
             }
         });
 
@@ -2103,8 +2259,7 @@
             // UC is always monthly, so pre-select monthly
             confirmUcFrequencySelect.value = 'monthly';
 
-            confirmUcAddModal.classList.add('show');
-            document.body.classList.add('modal-open');
+            openModal(confirmUcAddModal); // Use generic open modal function
         });
 
         confirmAddUcBtn.addEventListener('click', () => {
@@ -2135,20 +2290,15 @@
             localStorage.setItem('transactions', JSON.stringify(transactions));
             showMessage(`Estimated UC of £${estimatedUcPaymentValue.toFixed(2)} added to calendar for ${selectedNextUcPayDate}!`);
             
-            closeConfirmUcAddModal();
-            renderCalendar();
+            closeModal(confirmUcAddModal); // Use generic close modal function
+            updateCalendarView(); // Re-render calendar based on current view
             renderOverview();
         });
 
-        function closeConfirmUcAddModal() {
-            confirmUcAddModal.classList.remove('show');
-            document.body.classList.remove('modal-open');
-        }
-
-        closeConfirmUcAddModalBtn.addEventListener('click', closeConfirmUcAddModal);
+        closeConfirmUcAddModalBtn.addEventListener('click', () => closeModal(confirmUcAddModal));
         confirmUcAddModal.addEventListener('click', (e) => {
             if (e.target === confirmUcAddModal) {
-                closeConfirmUcAddModal();
+                closeModal(confirmUcAddModal);
             }
         });
 
@@ -2182,24 +2332,7 @@
 
 
         // --- Event Listeners ---
-        prevMonthBtn.addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            renderCalendar();
-        });
-
-        nextMonthBtn.addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            }
-            renderCalendar();
-        });
-
+        // Close modal buttons now use the generic closeModal function
         closeAddModalBtn.addEventListener('click', closeAddModal);
         addTransactionModal.addEventListener('click', (e) => {
             if (e.target === addTransactionModal) { // Close if clicked outside content
@@ -2220,21 +2353,14 @@
             // Pre-fill with current balance if available, otherwise empty
             const currentBalance = calculateBalanceUpToDate(today);
             newBalanceAmountInput.value = currentBalance.toFixed(2);
-            openUpdateBalanceModal();
+            openModal(updateBalanceModal); // Use generic open modal function
         });
 
-        // Update Balance Modal Logic
-        function openUpdateBalanceModal() {
-            updateBalanceModal.classList.add('show');
-            document.body.classList.add('modal-open');
-        }
-
         function closeUpdateBalanceModal() {
-            updateBalanceModal.classList.remove('show');
-            document.body.classList.remove('modal-open');
+            closeModal(updateBalanceModal); // Use generic close modal function
             newBalanceAmountInput.value = ''; // Clear input
             renderOverview(); // Re-render overview to reflect new balance
-            renderCalendar(); // Re-render calendar as well
+            updateCalendarView(); // Re-render calendar as well
         }
 
         closeUpdateBalanceModalBtn.addEventListener('click', closeUpdateBalanceModal);
@@ -2367,7 +2493,8 @@
                 if (button.dataset.tab === 'overview') {
                     renderOverview();
                 } else if (button.dataset.tab === 'calendar') {
-                    renderCalendar();
+                    // When switching to calendar, ensure the correct view is rendered
+                    updateCalendarView();
                 } else if (button.dataset.tab === 'pay-estimator') {
                     updateContractedUnitsLabel(); // Initialize label for pay estimator
                     payEstimatorResultsDiv.classList.add('hidden'); // Hide results initially
@@ -2401,14 +2528,10 @@
             overviewContent.classList.add('active');
 
             renderOverview(); // Render overview content
-            renderCalendar(); // Render calendar in background even if not visible
-            
-            // Initial check for zoom listeners
-            checkAndApplyZoomListeners();
+            // Only render monthly calendar initially, daily view will be rendered on toggle
+            renderCalendar(); 
         });
 
-        // Add resize listener to re-evaluate zoom listeners
-        window.addEventListener('resize', checkAndApplyZoomListeners);
     </script>
 </body>
 </html>
