@@ -377,12 +377,14 @@
 
         <!-- Calendar Tab Content -->
         <div id="calendarTabContent" class="tab-content active">
+            <!-- Calendar Header (Month/Year and Nav Buttons) - outside the scrolling area -->
+            <div class="calendar-header mb-4 p-2">
+                <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start">&lt; Prev</button>
+                <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800 text-center"></h2>
+                <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-end">Next &gt;</button>
+            </div>
+            <!-- Calendar Grid Container (with horizontal scrolling) -->
             <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
-                <div class="calendar-header">
-                    <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start">&lt; Prev</button>
-                    <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800 text-center"></h2>
-                    <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-end">Next &gt;</button>
-                </div>
                 <div class="calendar-grid">
                     <div class="calendar-day-header">Sun</div>
                     <div class="calendar-day-header">Mon</div>
