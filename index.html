@@ -149,7 +149,7 @@
         }
         .calendar-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(7, minmax(90px, 1fr)); /* Adjusted for minimum width */
             gap: 0.5rem;
         }
         .calendar-day-header {
@@ -371,7 +371,7 @@
 
         <!-- Calendar Tab Content -->
         <div id="calendarTabContent" class="tab-content active">
-            <div class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner">
+            <div class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
                 <div class="calendar-header">
                     <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg">&lt; Prev</button>
                     <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800"></h2>
