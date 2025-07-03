@@ -213,6 +213,7 @@
             cursor: pointer;
             transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
             position: relative; /* For cumulative total positioning */
+            min-width: 0; /* Allow grid items to shrink */
         }
         .calendar-day:hover {
             background-color: #eff6ff; /* Light blue on hover */
@@ -754,7 +755,8 @@
             </div>
 
             <!-- Calendar Grid Container (removed overflow-x-auto) -->
-            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner">
+            <!-- Adjusted padding for mobile: px-2 py-4 -->
+            <div class="mb-8 px-2 py-4 md:p-6 bg-gray-50 rounded-xl shadow-inner">
                 <div id="calendarContentWrapper">
                     <div class="calendar-grid-header-row">
                         <div class="calendar-day-header">Sun</div>
