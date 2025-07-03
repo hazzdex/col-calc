@@ -328,14 +328,17 @@
         .calendar-daily-view-container .calendar-day {
             min-height: 300px; /* Larger height for daily view */
             padding: 1.5rem;
-            align-items: stretch; /* Stretch content to fill width */
-            /* width: 100%; Removed, handled by .daily-view-content > .calendar-day */
-            /* box-sizing: border-box; Removed, handled by .daily-view-content > .calendar-day */
+            /* Changed to column flex for internal layout */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* Align content to the top */
+            align-items: stretch; /* Stretch children to fill width */
             cursor: default; /* Remove pointer cursor for the whole day */
         }
         .calendar-daily-view-container .calendar-day-transactions {
-            max-height: none; /* Remove max height for daily view */
-            overflow-y: visible; /* Allow full content */
+            max-height: 180px; /* Set a max height for the scrollable area */
+            overflow-y: auto; /* Enable vertical scrolling */
+            -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
             margin-bottom: 1rem;
             font-size: 0.75rem; /* Revert to original size for daily view */
         }
@@ -358,20 +361,10 @@
         }
         /* Changed from add-transaction-daily-btn to btn-primary */
         .calendar-daily-view-container .btn-primary {
-            /* background-color: #3b82f6; Blue for add button */
-            /* color: white; */
-            /* padding: 0.75rem 1.5rem; */
-            /* border-radius: 0.5rem; */
-            /* font-weight: 600; */
-            /* transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out; */
-            /* box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); */
             width: 100%;
-            margin-top: 1rem;
+            margin-top: auto; /* Pushes the button to the bottom */
+            touch-action: manipulation; /* Ensure touch events are handled directly */
         }
-        /* .calendar-daily-view-container .add-transaction-daily-btn:hover { */
-        /* background-color: #2563eb; */
-        /* transform: translateY(-1px); */
-        /* } */
 
 
         /* Modal styles */
@@ -1022,7 +1015,7 @@
                         </select>
                     </div>
                 </div>
-                <button id="addTransactionBtn" class="btn-primary w-full">Add Transaction</button>
+                <button id="addTransactionBtn" class="btn-primary w-full" touch-action="manipulation">Add Transaction</button>
             </div>
         </div>
     </div>
@@ -1063,7 +1056,7 @@
                     </div>
                 </div>
 
-                <button id="saveEditedTransactionBtn" class="btn-primary w-full">Save Changes</button>
+                <button id="saveEditedTransactionBtn" class="btn-primary w-full" touch-action="manipulation">Save Changes</button>
             </div>
         </div>
     </div>
@@ -1078,7 +1071,7 @@
                     <label for="newBalanceAmount" class="block text-sm mb-1">Your Current Bank Balance (£):</label>
                     <input type="number" id="newBalanceAmount" placeholder="e.g., 1500.00" step="0.01" class="focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
-                <button id="saveBalanceBtn" class="btn-primary w-full">Save Balance</button>
+                <button id="saveBalanceBtn" class="btn-primary w-full" touch-action="manipulation">Save Balance</button>
             </div>
         </div>
     </div>
@@ -1104,7 +1097,7 @@
                         <option value="annually">Annually</option>
                     </select>
                 </div>
-                <button id="confirmAddPayBtn" class="btn-primary w-full">Confirm Add to Calendar</button>
+                <button id="confirmAddPayBtn" class="btn-primary w-full" touch-action="manipulation">Confirm Add to Calendar</button>
             </div>
         </div>
     </div>
@@ -1126,7 +1119,7 @@
                         <option value="monthly">Monthly</option>
                     </select>
                 </div>
-                <button id="confirmAddUcBtn" class="btn-primary w-full">Confirm Add to Calendar</button>
+                <button id="confirmAddUcBtn" class="btn-primary w-full" touch-action="manipulation">Confirm Add to Calendar</button>
             </div>
         </div>
     </div>
@@ -1324,12 +1317,17 @@
         // Global references for current and adjacent day elements in daily view
         let currentDailyContentEl = null;
         let adjacentDailyContentEl = null;
+        
+        // Global references for current and adjacent month elements in monthly view
+        let currentMonthContentEl = null;
+        let adjacentMonthContentEl = null;
+
 
         // Swipe tracking variables
         let touchStartX = 0;
         let touchCurrentX = 0;
         let isSwiping = false;
-        let swipeDirection = 0; // -1 for right-to-left (next day), 1 for left-to-right (prev day)
+        let swipeDirection = 0; // -1 for right-to-left (next day/month), 1 for left-to-right (prev day/month)
 
         // Scrollbar width calculation for modal fix
         let scrollbarWidth = 0;
@@ -1633,37 +1631,36 @@
             return effectiveTransactions.sort((a, b) => a.name.localeCompare(b.name));
         }
 
+        /**
+         * Renders the monthly calendar content into a container.
+         * @param {number} year - The year to render.
+         * @param {number} month - The month to render (0-indexed).
+         * @param {HTMLElement} parentElement - The DOM element to append the calendar days to.
+         * @param {string} [initialTransform='translateX(0)'] - Initial CSS transform for the content wrapper.
+         * @returns {HTMLElement} The newly created content wrapper for the month.
+         */
+        function renderMonthlyViewContent(year, month, parentElement, initialTransform = 'translateX(0)') {
+            const monthContentWrapper = document.createElement('div');
+            monthContentWrapper.className = 'calendar-grid-days'; // Use the same grid class
+            monthContentWrapper.style.transform = initialTransform;
+            monthContentWrapper.style.transition = 'transform 0.2s ease-out'; // Add transition for swipe
 
-        // --- Calendar Rendering ---
-        function renderCalendar() {
-            calendarDaysEl.innerHTML = '';
-            calendarContentWrapper.classList.remove('calendar-daily-view-container'); // Remove daily view specific class
-            calendarGridHeaderRow.style.display = 'grid'; // Show header for monthly view
-            calendarDaysEl.classList.remove('daily-view-active'); // Remove daily view container class
-            
-            // Removed dynamic grid-template-columns and gap setting from JS.
-            // This is now handled entirely by CSS media queries for consistency.
+            const daysInMonth = getDaysInMonth(year, month);
+            const firstDayIndex = getFirstDayOfMonth(year, month); // 0 (Sun) - 6 (Sat)
 
-            currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-            prevMonthBtn.textContent = '< Prev';
-            nextMonthBtn.textContent = 'Next >';
-
-            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-            const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth); // 0 (Sun) - 6 (Sat)
+            const today = new Date();
+            const todayFormatted = formatDate(today);
 
             // Add blank days for the start of the month
             for (let i = 0; i < firstDayIndex; i++) {
                 const blankDay = document.createElement('div');
                 blankDay.className = 'calendar-day inactive';
-                calendarDaysEl.appendChild(blankDay);
+                monthContentWrapper.appendChild(blankDay);
             }
-
-            const today = new Date();
-            const todayFormatted = formatDate(today);
 
             // Add days of the month
             for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(currentYear, currentMonth, day);
+                const date = new Date(year, month, day);
                 const formattedDate = formatDate(date);
 
                 const dayEl = document.createElement('div');
@@ -1674,26 +1671,20 @@
                     dayEl.classList.add('today');
                 }
 
-                // Only render cumulative balance in monthly view
                 dayEl.innerHTML = `<div class="calendar-day-number">${day}</div><div class="calendar-day-cumulative"></div>`;
 
                 const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
-
-                // Get the balance for this specific day using the new calculation logic
                 const balanceForThisDay = calculateBalanceUpToDate(date);
                 
-                // Format cumulative balance: abbreviate if >= 1000, rounding down to 1 decimal place
                 let formattedCumulativeBalance;
                 if (Math.abs(balanceForThisDay) >= 1000) {
-                    // Round down to nearest 1 decimal place for thousands
                     formattedCumulativeBalance = `£${(Math.floor(balanceForThisDay / 100) / 10).toFixed(1)}k`;
                 } else {
-                    // Round down to the nearest whole pound for display
                     formattedCumulativeBalance = `£${Math.floor(balanceForThisDay).toFixed(0)}`;
                 }
                 
                 cumulativeEl.textContent = formattedCumulativeBalance;
-                if (balanceForThisDay >= 0) { /* Use original balance for color logic */
+                if (balanceForThisDay >= 0) {
                     cumulativeEl.classList.add('positive');
                     cumulativeEl.classList.remove('negative');
                 } else {
@@ -1701,16 +1692,18 @@
                     cumulativeEl.classList.remove('positive');
                 }
 
-                // Changed: Clicking a day in monthly view now opens daily view
                 dayEl.addEventListener('click', () => {
                     currentCalendarView = 'daily';
-                    currentDailyDate = date; // Set the clicked date as the current daily date
-                    calendarViewToggle.checked = true; // Update the toggle switch
-                    updateCalendarView(); // Re-render in daily view
+                    currentDailyDate = date;
+                    calendarViewToggle.checked = true;
+                    updateCalendarView();
                 });
-                calendarDaysEl.appendChild(dayEl);
+                monthContentWrapper.appendChild(dayEl);
             }
+            parentElement.appendChild(monthContentWrapper);
+            return monthContentWrapper;
         }
+
 
         // Function to render the daily view content into a container
         function renderDailyViewContent(date, parentElement, initialTransform = 'translateX(0)') {
@@ -1803,9 +1796,31 @@
                     adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
                     adjacentDailyContentEl = null;
                 }
+                
+                // Clear calendarDaysEl before rendering new month content
+                calendarDaysEl.innerHTML = ''; 
+                calendarContentWrapper.classList.remove('calendar-daily-view-container');
+                calendarGridHeaderRow.style.display = 'grid';
+                calendarDaysEl.classList.remove('daily-view-active');
 
-                renderCalendar();
+                // Render the current month
+                currentMonthContentEl = renderMonthlyViewContent(currentYear, currentMonth, calendarDaysEl);
+
+                currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+                prevMonthBtn.textContent = '< Prev';
+                nextMonthBtn.textContent = 'Next >';
+
             } else { // daily view
+                // Clean up monthly view elements if switching from monthly
+                if (currentMonthContentEl && currentMonthContentEl.parentNode) {
+                    currentMonthContentEl.parentNode.removeChild(currentMonthContentEl);
+                    currentMonthContentEl = null;
+                }
+                if (adjacentMonthContentEl && adjacentMonthContentEl.parentNode) {
+                    adjacentMonthContentEl.parentNode.removeChild(adjacentMonthContentEl);
+                    adjacentMonthContentEl = null;
+                }
+
                 // Ensure calendarDaysEl is set up for daily view
                 calendarDaysEl.innerHTML = ''; // Clear any existing content
                 calendarContentWrapper.classList.add('calendar-daily-view-container');
@@ -1816,7 +1831,7 @@
                 currentDailyContentEl = renderDailyViewContent(currentDailyDate, calendarDaysEl);
 
                 // Update header
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); // Changed to show full date
                 prevMonthBtn.textContent = '< Prev Day';
                 nextMonthBtn.textContent = 'Next Day >';
             }
@@ -1868,7 +1883,7 @@
                 currentDailyDate.setDate(currentDailyDate.getDate() - 1);
                 currentMonth = currentDailyDate.getMonth();
                 currentYear = currentDailyDate.getFullYear();
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); // Changed to show full date
                 // Clean up old element after transition
                 if (currentDailyContentEl) {
                     currentDailyContentEl.addEventListener('transitionend', function handler() {
@@ -1914,7 +1929,7 @@
                 currentDailyDate.setDate(currentDailyDate.getDate() + 1);
                 currentMonth = currentDailyDate.getMonth();
                 currentYear = currentDailyDate.getFullYear();
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); // Changed to show full date
 
                 // Clean up old element after transition
                 if (currentDailyContentEl) {
@@ -1953,8 +1968,13 @@
                         adjacentDailyContentEl = null;
                     }
                 } else if (currentCalendarView === 'monthly') {
-                    if (calendarDaysEl) {
-                        calendarDaysEl.style.transition = 'none'; // Disable transition during drag
+                    if (currentMonthContentEl) {
+                        currentMonthContentEl.style.transition = 'none'; // Disable transition during drag
+                    }
+                    // Remove any lingering adjacent element for monthly view
+                    if (adjacentMonthContentEl && adjacentMonthContentEl.parentNode) {
+                        adjacentMonthContentEl.parentNode.removeChild(adjacentMonthContentEl);
+                        adjacentMonthContentEl = null;
                     }
                 }
             }
@@ -1997,8 +2017,30 @@
                     }
                 } else if (currentCalendarView === 'monthly') {
                     // New monthly view swipe logic
-                    if (calendarDaysEl) {
-                        calendarDaysEl.style.transform = `translateX(${deltaX}px)`;
+                    if (currentMonthContentEl) {
+                        currentMonthContentEl.style.transform = `translateX(${deltaX}px)`;
+                    }
+
+                    const minDeltaToPreRender = 20;
+                    if (!adjacentMonthContentEl && Math.abs(deltaX) > minDeltaToPreRender) {
+                        const adjacentMonth = new Date(currentYear, currentMonth);
+                        if (deltaX < 0) { // Swiping left, so next month
+                            adjacentMonth.setMonth(adjacentMonth.getMonth() + 1);
+                            adjacentMonthContentEl = renderMonthlyViewContent(adjacentMonth.getFullYear(), adjacentMonth.getMonth(), calendarDaysEl, `translateX(${window.innerWidth}px)`);
+                            swipeDirection = -1;
+                        } else { // Swiping right, so previous month
+                            adjacentMonth.setMonth(adjacentMonth.getMonth() - 1);
+                            adjacentMonthContentEl = renderMonthlyViewContent(adjacentMonth.getFullYear(), adjacentMonth.getMonth(), calendarDaysEl, `translateX(-${window.innerWidth}px)`);
+                            swipeDirection = 1;
+                        }
+                        if (adjacentMonthContentEl) {
+                            adjacentMonthContentEl.style.transition = 'none';
+                        }
+                    }
+
+                    if (adjacentMonthContentEl) {
+                        const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
+                        adjacentMonthContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
                     }
                 }
             }
@@ -2033,7 +2075,7 @@
                             currentDailyDate.setDate(currentDailyDate.getDate() - 1); // Update date
                         }
 
-                        currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                        currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
                         if (currentDailyContentEl) {
                             currentDailyContentEl.addEventListener('transitionend', function handler() {
@@ -2062,39 +2104,60 @@
                     }
                 } else if (currentCalendarView === 'monthly') {
                     // New monthly view swipe logic
-                    if (calendarDaysEl) {
-                        calendarDaysEl.style.transition = 'transform 0.2s ease-out'; // Enable transition for snap/slide
+                    if (currentMonthContentEl) {
+                        currentMonthContentEl.style.transition = 'transform 0.2s ease-out'; // Enable transition for snap/slide
+                    }
+                    if (adjacentMonthContentEl) {
+                        adjacentMonthContentEl.style.transition = 'transform 0.2s ease-out';
                     }
 
-                    if (Math.abs(swipeDistance) > swipeThreshold) {
+                    if (Math.abs(swipeDistance) > swipeThreshold && adjacentMonthContentEl) {
                         // Swipe successful, change month
-                        if (swipeDistance < 0) { // Swiped left (next month)
-                            calendarDaysEl.style.transform = 'translateX(-100%)';
+                        if (swipeDirection === -1) { // Swiped left (next month)
+                            if (currentMonthContentEl) currentMonthContentEl.style.transform = 'translateX(-100%)';
+                            if (adjacentMonthContentEl) adjacentMonthContentEl.style.transform = 'translateX(0)';
+                            
                             currentMonth++;
                             if (currentMonth > 11) {
                                 currentMonth = 0;
                                 currentYear++;
                             }
                         } else { // Swiped right (previous month)
-                            calendarDaysEl.style.transform = 'translateX(100%)';
+                            if (currentMonthContentEl) currentMonthContentEl.style.transform = 'translateX(100%)';
+                            if (adjacentMonthContentEl) adjacentMonthContentEl.style.transform = 'translateX(0)';
+
                             currentMonth--;
                             if (currentMonth < 0) {
                                 currentMonth = 11;
                                 currentYear--;
                             }
                         }
-                        // After the slide-out animation, reset transform and re-render the new month
-                        setTimeout(() => {
-                            if (calendarDaysEl) {
-                                calendarDaysEl.style.transition = 'none'; // Disable transition before snapping back
-                                calendarDaysEl.style.transform = 'translateX(0)'; // Snap back to original position
-                            }
-                            updateCalendarView(); // Render the new month
-                        }, 200); // Match CSS transition duration
+                        currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+
+                        // Clean up old element after transition
+                        if (currentMonthContentEl) {
+                            currentMonthContentEl.addEventListener('transitionend', function handler() {
+                                currentMonthContentEl.removeEventListener('transitionend', handler);
+                                if (currentMonthContentEl.parentNode) {
+                                    currentMonthContentEl.parentNode.removeChild(currentMonthContentEl);
+                                }
+                                currentMonthContentEl = adjacentMonthContentEl;
+                                adjacentMonthContentEl = null;
+                            }, { once: true });
+                        }
                     } else {
                         // Swipe too short, snap back to original position
-                        if (calendarDaysEl) {
-                            calendarDaysEl.style.transform = 'translateX(0)';
+                        if (currentMonthContentEl) currentMonthContentEl.style.transform = 'translateX(0)';
+                        if (adjacentMonthContentEl) {
+                            const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
+                            adjacentMonthContentEl.style.transform = `translateX(${initialAdjacentOffset}px)`;
+                            adjacentMonthContentEl.addEventListener('transitionend', function handler() {
+                                adjacentMonthContentEl.removeEventListener('transitionend', handler);
+                                if (adjacentMonthContentEl.parentNode) {
+                                    adjacentMonthContentEl.parentNode.removeChild(adjacentMonthContentEl);
+                                }
+                                adjacentMonthContentEl = null;
+                            }, { once: true });
                         }
                     }
                 }
@@ -2978,7 +3041,7 @@
             // Set Overview as the default active tab
             switchTab('overview');
             // Only render monthly calendar initially, daily view will be rendered on toggle
-            renderCalendar(); 
+            updateCalendarView(); 
         });
 
     </script>
