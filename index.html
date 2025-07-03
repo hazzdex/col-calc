@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Money">
     <!-- Explicitly specify size for apple-touch-icon -->
-    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/50/FFFFFF/money-bag.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/100/FFFFFF/money-bag.png">
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -110,7 +110,7 @@
             border-radius: 0.3rem;
             font-size: 0.8rem;
             transition: background-color 0.2s ease-in-out;
-            margin-left: 0.5rem; /* Space from delete button */
+            /* margin-left: 0.5rem; Removed, now handled by gap on parent */
         }
         .btn-edit:hover {
             background-color: #2563eb; /* Darker blue on hover */
@@ -987,7 +987,7 @@
                             <p class="font-semibold">${t.name}</p>
                             <p class="text-sm text-gray-600">${displayAmount}${repeatText}</p>
                         </div>
-                        <div>
+                        <div class="flex items-center gap-2"> <!-- Added flex and gap for button alignment -->
                             <button class="btn-edit" data-id="${t.id}" data-instance-date="${date}">Edit</button>
                             <button class="btn-delete" data-id="${t.id}">Delete</button>
                         </div>
