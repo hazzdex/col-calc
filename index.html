@@ -1318,9 +1318,7 @@
         let currentDailyContentEl = null;
         let adjacentDailyContentEl = null;
         
-        // Global references for current and adjacent month elements in monthly view
-        let currentMonthContentEl = null;
-        let adjacentMonthContentEl = null;
+        // No longer need currentMonthContentEl and adjacentMonthContentEl as calendarDaysEl is directly manipulated.
 
 
         // Swipe tracking variables
@@ -1631,36 +1629,39 @@
             return effectiveTransactions.sort((a, b) => a.name.localeCompare(b.name));
         }
 
-        /**
-         * Renders the monthly calendar content into a container.
-         * @param {number} year - The year to render.
-         * @param {number} month - The month to render (0-indexed).
-         * @param {HTMLElement} parentElement - The DOM element to append the calendar days to.
-         * @param {string} [initialTransform='translateX(0)'] - Initial CSS transform for the content wrapper.
-         * @returns {HTMLElement} The newly created content wrapper for the month.
-         */
-        function renderMonthlyViewContent(year, month, parentElement, initialTransform = 'translateX(0)') {
-            const monthContentWrapper = document.createElement('div');
-            monthContentWrapper.className = 'calendar-grid-days'; // Use the same grid class
-            monthContentWrapper.style.transform = initialTransform;
-            monthContentWrapper.style.transition = 'transform 0.2s ease-out'; // Add transition for swipe
 
-            const daysInMonth = getDaysInMonth(year, month);
-            const firstDayIndex = getFirstDayOfMonth(year, month); // 0 (Sun) - 6 (Sat)
+        // --- Calendar Rendering ---
+        function renderCalendar() {
+            // Ensure calendarDaysEl is ready for monthly view
+            calendarDaysEl.innerHTML = ''; // Clear existing content
+            calendarContentWrapper.classList.remove('calendar-daily-view-container');
+            calendarGridHeaderRow.style.display = 'grid';
+            calendarDaysEl.classList.remove('daily-view-active');
+            // Ensure calendarDaysEl has the grid class itself if it somehow lost it, though CSS should handle this
+            calendarDaysEl.classList.add('calendar-grid-days'); // Make sure this class is always on the main container for monthly view
+            calendarDaysEl.style.transform = 'translateX(0)'; // Reset transform for monthly view container
+            calendarDaysEl.style.transition = 'none'; // Disable transition before new content is rendered
 
-            const today = new Date();
-            const todayFormatted = formatDate(today);
+            currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+            prevMonthBtn.textContent = '< Prev';
+            nextMonthBtn.textContent = 'Next >';
+
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth); // 0 (Sun) - 6 (Sat)
 
             // Add blank days for the start of the month
             for (let i = 0; i < firstDayIndex; i++) {
                 const blankDay = document.createElement('div');
                 blankDay.className = 'calendar-day inactive';
-                monthContentWrapper.appendChild(blankDay);
+                calendarDaysEl.appendChild(blankDay);
             }
+
+            const today = new Date();
+            const todayFormatted = formatDate(today);
 
             // Add days of the month
             for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
+                const date = new Date(currentYear, currentMonth, day);
                 const formattedDate = formatDate(date);
 
                 const dayEl = document.createElement('div');
@@ -1671,20 +1672,26 @@
                     dayEl.classList.add('today');
                 }
 
+                // Only render cumulative balance in monthly view
                 dayEl.innerHTML = `<div class="calendar-day-number">${day}</div><div class="calendar-day-cumulative"></div>`;
 
                 const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
+
+                // Get the balance for this specific day using the new calculation logic
                 const balanceForThisDay = calculateBalanceUpToDate(date);
                 
+                // Format cumulative balance: abbreviate if >= 1000, rounding down to 1 decimal place
                 let formattedCumulativeBalance;
                 if (Math.abs(balanceForThisDay) >= 1000) {
+                    // Round down to nearest 1 decimal place for thousands
                     formattedCumulativeBalance = `£${(Math.floor(balanceForThisDay / 100) / 10).toFixed(1)}k`;
                 } else {
+                    // Round down to the nearest whole pound for display
                     formattedCumulativeBalance = `£${Math.floor(balanceForThisDay).toFixed(0)}`;
                 }
                 
                 cumulativeEl.textContent = formattedCumulativeBalance;
-                if (balanceForThisDay >= 0) {
+                if (balanceForThisDay >= 0) { /* Use original balance for color logic */
                     cumulativeEl.classList.add('positive');
                     cumulativeEl.classList.remove('negative');
                 } else {
@@ -1692,18 +1699,16 @@
                     cumulativeEl.classList.remove('positive');
                 }
 
+                // Changed: Clicking a day in monthly view now opens daily view
                 dayEl.addEventListener('click', () => {
                     currentCalendarView = 'daily';
-                    currentDailyDate = date;
-                    calendarViewToggle.checked = true;
-                    updateCalendarView();
+                    currentDailyDate = date; // Set the clicked date as the current daily date
+                    calendarViewToggle.checked = true; // Update the toggle switch
+                    updateCalendarView(); // Re-render in daily view
                 });
-                monthContentWrapper.appendChild(dayEl);
+                calendarDaysEl.appendChild(dayEl);
             }
-            parentElement.appendChild(monthContentWrapper);
-            return monthContentWrapper;
         }
-
 
         // Function to render the daily view content into a container
         function renderDailyViewContent(date, parentElement, initialTransform = 'translateX(0)') {
@@ -1802,9 +1807,13 @@
                 calendarContentWrapper.classList.remove('calendar-daily-view-container');
                 calendarGridHeaderRow.style.display = 'grid';
                 calendarDaysEl.classList.remove('daily-view-active');
+                // Ensure calendarDaysEl has the grid class itself if it somehow lost it, though CSS should handle this
+                calendarDaysEl.classList.add('calendar-grid-days'); // Make sure this class is always on the main container for monthly view
+                calendarDaysEl.style.transform = 'translateX(0)'; // Reset transform for monthly view container
+                calendarDaysEl.style.transition = 'none'; // Disable transition before new content is rendered
 
-                // Render the current month
-                currentMonthContentEl = renderMonthlyViewContent(currentYear, currentMonth, calendarDaysEl);
+                // Render the current month directly into calendarDaysEl
+                renderCalendar(); // This function now directly populates calendarDaysEl
 
                 currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
                 prevMonthBtn.textContent = '< Prev';
@@ -1812,15 +1821,9 @@
 
             } else { // daily view
                 // Clean up monthly view elements if switching from monthly
-                if (currentMonthContentEl && currentMonthContentEl.parentNode) {
-                    currentMonthContentEl.parentNode.removeChild(currentMonthContentEl);
-                    currentMonthContentEl = null;
-                }
-                if (adjacentMonthContentEl && adjacentMonthContentEl.parentNode) {
-                    adjacentMonthContentEl.parentNode.removeChild(adjacentMonthContentEl);
-                    adjacentMonthContentEl = null;
-                }
-
+                // The currentMonthContentEl is no longer used, as renderCalendar directly populates calendarDaysEl.
+                // So, we just need to ensure calendarDaysEl is cleared for daily view.
+                
                 // Ensure calendarDaysEl is set up for daily view
                 calendarDaysEl.innerHTML = ''; // Clear any existing content
                 calendarContentWrapper.classList.add('calendar-daily-view-container');
@@ -1968,13 +1971,8 @@
                         adjacentDailyContentEl = null;
                     }
                 } else if (currentCalendarView === 'monthly') {
-                    if (currentMonthContentEl) {
-                        currentMonthContentEl.style.transition = 'none'; // Disable transition during drag
-                    }
-                    // Remove any lingering adjacent element for monthly view
-                    if (adjacentMonthContentEl && adjacentMonthContentEl.parentNode) {
-                        adjacentMonthContentEl.parentNode.removeChild(adjacentMonthContentEl);
-                        adjacentMonthContentEl = null;
+                    if (calendarDaysEl) { // Apply to the main calendarDaysEl for monthly view
+                        calendarDaysEl.style.transition = 'none'; // Disable transition during drag
                     }
                 }
             }
@@ -2016,31 +2014,9 @@
                         adjacentDailyContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
                     }
                 } else if (currentCalendarView === 'monthly') {
-                    // New monthly view swipe logic
-                    if (currentMonthContentEl) {
-                        currentMonthContentEl.style.transform = `translateX(${deltaX}px)`;
-                    }
-
-                    const minDeltaToPreRender = 20;
-                    if (!adjacentMonthContentEl && Math.abs(deltaX) > minDeltaToPreRender) {
-                        const adjacentMonth = new Date(currentYear, currentMonth);
-                        if (deltaX < 0) { // Swiping left, so next month
-                            adjacentMonth.setMonth(adjacentMonth.getMonth() + 1);
-                            adjacentMonthContentEl = renderMonthlyViewContent(adjacentMonth.getFullYear(), adjacentMonth.getMonth(), calendarDaysEl, `translateX(${window.innerWidth}px)`);
-                            swipeDirection = -1;
-                        } else { // Swiping right, so previous month
-                            adjacentMonth.setMonth(adjacentMonth.getMonth() - 1);
-                            adjacentMonthContentEl = renderMonthlyViewContent(adjacentMonth.getFullYear(), adjacentMonth.getMonth(), calendarDaysEl, `translateX(-${window.innerWidth}px)`);
-                            swipeDirection = 1;
-                        }
-                        if (adjacentMonthContentEl) {
-                            adjacentMonthContentEl.style.transition = 'none';
-                        }
-                    }
-
-                    if (adjacentMonthContentEl) {
-                        const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
-                        adjacentMonthContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
+                    // Monthly view swipe logic: apply transform directly to calendarDaysEl
+                    if (calendarDaysEl) {
+                        calendarDaysEl.style.transform = `translateX(${deltaX}px)`;
                     }
                 }
             }
@@ -2103,61 +2079,41 @@
                         }
                     }
                 } else if (currentCalendarView === 'monthly') {
-                    // New monthly view swipe logic
-                    if (currentMonthContentEl) {
-                        currentMonthContentEl.style.transition = 'transform 0.2s ease-out'; // Enable transition for snap/slide
-                    }
-                    if (adjacentMonthContentEl) {
-                        adjacentMonthContentEl.style.transition = 'transform 0.2s ease-out';
+                    // Monthly view swipe logic: apply transform directly to calendarDaysEl
+                    if (calendarDaysEl) {
+                        calendarDaysEl.style.transition = 'transform 0.2s ease-out'; // Enable transition for snap/slide
                     }
 
-                    if (Math.abs(swipeDistance) > swipeThreshold && adjacentMonthContentEl) {
+                    if (Math.abs(swipeDistance) > swipeThreshold) {
                         // Swipe successful, change month
-                        if (swipeDirection === -1) { // Swiped left (next month)
-                            if (currentMonthContentEl) currentMonthContentEl.style.transform = 'translateX(-100%)';
-                            if (adjacentMonthContentEl) adjacentMonthContentEl.style.transform = 'translateX(0)';
-                            
+                        if (swipeDistance < 0) { // Swiped left (next month)
+                            if (calendarDaysEl) calendarDaysEl.style.transform = 'translateX(-100%)';
                             currentMonth++;
                             if (currentMonth > 11) {
                                 currentMonth = 0;
                                 currentYear++;
                             }
                         } else { // Swiped right (previous month)
-                            if (currentMonthContentEl) currentMonthContentEl.style.transform = 'translateX(100%)';
-                            if (adjacentMonthContentEl) adjacentMonthContentEl.style.transform = 'translateX(0)';
-
+                            if (calendarDaysEl) calendarDaysEl.style.transform = 'translateX(100%)';
                             currentMonth--;
                             if (currentMonth < 0) {
                                 currentMonth = 11;
                                 currentYear--;
                             }
                         }
-                        currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-
-                        // Clean up old element after transition
-                        if (currentMonthContentEl) {
-                            currentMonthContentEl.addEventListener('transitionend', function handler() {
-                                currentMonthContentEl.removeEventListener('transitionend', handler);
-                                if (currentMonthContentEl.parentNode) {
-                                    currentMonthContentEl.parentNode.removeChild(currentMonthContentEl);
-                                }
-                                currentMonthContentEl = adjacentMonthContentEl;
-                                adjacentMonthContentEl = null;
-                            }, { once: true });
-                        }
+                        // After the slide-out animation, reset transform and re-render the new month
+                        // This timeout ensures the visual slide-out completes before the content changes.
+                        setTimeout(() => {
+                            if (calendarDaysEl) {
+                                calendarDaysEl.style.transition = 'none'; // Disable transition before snapping back
+                                calendarDaysEl.style.transform = 'translateX(0)'; // Snap back to original position
+                            }
+                            updateCalendarView(); // Render the new month
+                        }, 200); // Match CSS transition duration
                     } else {
                         // Swipe too short, snap back to original position
-                        if (currentMonthContentEl) currentMonthContentEl.style.transform = 'translateX(0)';
-                        if (adjacentMonthContentEl) {
-                            const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
-                            adjacentMonthContentEl.style.transform = `translateX(${initialAdjacentOffset}px)`;
-                            adjacentMonthContentEl.addEventListener('transitionend', function handler() {
-                                adjacentMonthContentEl.removeEventListener('transitionend', handler);
-                                if (adjacentMonthContentEl.parentNode) {
-                                    adjacentMonthContentEl.parentNode.removeChild(adjacentMonthContentEl);
-                                }
-                                adjacentMonthContentEl = null;
-                            }, { once: true });
+                        if (calendarDaysEl) {
+                            calendarDaysEl.style.transform = 'translateX(0)';
                         }
                     }
                 }
