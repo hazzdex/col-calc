@@ -47,12 +47,17 @@
                 padding: 1rem; /* Smaller padding on mobile */
             }
         }
+        /* General section title style */
         .section-title {
-            font-size: 1.75rem; /* Larger title */
+            font-size: 1.75rem; /* Default larger size for desktop */
             font-weight: 700; /* Bold */
             color: #1e293b; /* Even darker title color */
-            margin-bottom: 1.5rem;
-            text-align: center;
+            margin-bottom: 1.5rem; /* Default margin for when it's a standalone section title */
+            text-align: center; /* Default for desktop */
+        }
+        /* Specific adjustments for section-title when it's part of the nav-header */
+        .nav-header .section-title {
+            margin-bottom: 0; /* Remove vertical margin when inside the header flex container */
         }
         .input-group label {
             font-weight: 500;
@@ -543,6 +548,7 @@
 
         /* Responsive Calendar Adjustments for Monthly View on Mobile */
         @media (max-width: 767px) {
+            /* Changed from minmax(80px, 1fr) to 1fr to allow full flexibility */
             .calendar-grid-header-row,
             .calendar-grid-days {
                 grid-template-columns: repeat(7, 1fr); /* Force equal width columns on mobile */
@@ -611,6 +617,10 @@
             }
             .tab-buttons {
                 display: none; /* Hide tab buttons on mobile */
+            }
+            /* Mobile-specific adjustments for the section-title within the nav-header */
+            .nav-header .section-title {
+                font-size: 1.25rem; /* Smaller font for mobile header to fit better */
             }
 
             /* Mobile Navigation Modal specific styles */
@@ -743,8 +753,8 @@
                 <span class="text-sm text-gray-600 ml-2">Daily View</span>
             </div>
 
-            <!-- Calendar Grid Container (with horizontal scrolling) -->
-            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
+            <!-- Calendar Grid Container (removed overflow-x-auto) -->
+            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner">
                 <div id="calendarContentWrapper">
                     <div class="calendar-grid-header-row">
                         <div class="calendar-day-header">Sun</div>
@@ -1221,7 +1231,7 @@
         const ucHousingElementSpan = document.getElementById('ucHousingElement');
         const ucTotalElementsSpan = document.getElementById('ucTotalElements');
         const ucWorkAllowanceSpan = document.getElementById('ucWorkAllowance');
-        const ucEarningsDeductionSpan = document.getElementById('ucEarningsDeduction');
+        const ucEarningsDeductionSpan = document = document.getElementById('ucEarningsDeduction');
         const ucNetPaymentSpan = document.getElementById('ucNetPayment');
         const addEstimatedUCtoCalendarBtn = document.getElementById('addEstimatedUCtoCalendarBtn');
         const importPayEstimatorEarningsBtn = document.getElementById('importPayEstimatorEarningsBtn'); // New import button
@@ -1540,7 +1550,8 @@
             
             // Set grid for monthly view - responsive
             if (isMobileView()) {
-                calendarDaysEl.style.gridTemplateColumns = 'repeat(7, 1fr)'; // Force equal width columns on mobile
+                // Changed from minmax(80px, 1fr) to 1fr to allow full flexibility
+                calendarDaysEl.style.gridTemplateColumns = 'repeat(7, 1fr)'; 
             } else {
                 calendarDaysEl.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Default for desktop
             }
