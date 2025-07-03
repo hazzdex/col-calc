@@ -248,7 +248,7 @@
         }
         .calendar-day.today {
             border: 2px solid #6366f1; /* Highlight today */
-            background-color: #e0e7ff; /* Lighter indigo background */
+            background-color: rgba(224, 231, 255, 0.5); /* Lighter indigo background with transparency */
         }
         .calendar-day.inactive {
             background-color: #f1f5f9;
@@ -262,8 +262,7 @@
             color: #1e293b;
         }
         /* Adjusted font size for monthly view content */
-        .calendar-day-transactions,
-        .calendar-day-cumulative {
+        .calendar-day-transactions {
             font-size: 0.5rem; /* Set font size to 0.5rem */
             color: #64748b;
             flex-grow: 1; /* Allows content to take available space */
@@ -278,13 +277,21 @@
             overflow: hidden; /* Hide overflow */
             text-overflow: ellipsis; /* Show ellipsis */
         }
-        /* .calendar-day-cumulative {
-            font-weight: 700;
-            font-size: 0.8rem; /* Reduced from 0.9rem */
-            /* margin-top: 0.5rem;
-            align-self: center; /* Changed from flex-end to center for alignment */
-            /* color: #1e293b;
-        } */
+        .calendar-day-cumulative {
+            font-size: 0.5rem; /* Default for mobile */
+            color: #64748b;
+            flex-grow: 1; /* Allows content to take available space */
+            width: 100%;
+            overflow-y: auto; /* Enable scrolling for many transactions */
+            max-height: 60px; /* Limit height of transaction list */
+            text-align: center; /* Center transaction text */
+        }
+        /* Desktop: Increase font size for cumulative balance */
+        @media (min-width: 768px) {
+            .calendar-day-cumulative {
+                font-size: 1rem; /* Larger font for desktop */
+            }
+        }
         .calendar-day-cumulative.positive {
             color: #065f46; /* Green for positive */
         }
@@ -349,21 +356,22 @@
             font-size: 1.2rem; /* Revert to original size for daily view */
             margin-top: 1rem;
         }
-        .calendar-daily-view-container .add-transaction-daily-btn {
-            background-color: #3b82f6; /* Blue for add button */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        /* Changed from add-transaction-daily-btn to btn-primary */
+        .calendar-daily-view-container .btn-primary {
+            /* background-color: #3b82f6; Blue for add button */
+            /* color: white; */
+            /* padding: 0.75rem 1.5rem; */
+            /* border-radius: 0.5rem; */
+            /* font-weight: 600; */
+            /* transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out; */
+            /* box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); */
             width: 100%;
             margin-top: 1rem;
         }
-        .calendar-daily-view-container .add-transaction-daily-btn:hover {
-            background-color: #2563eb;
-            transform: translateY(-1px);
-        }
+        /* .calendar-daily-view-container .add-transaction-daily-btn:hover { */
+        /* background-color: #2563eb; */
+        /* transform: translateY(-1px); */
+        /* } */
 
 
         /* Modal styles */
@@ -373,7 +381,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.2); /* More transparent */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -625,10 +633,6 @@
                 font-size: 0.5rem; /* Smaller transaction text */
                 max-height: 45px; /* Adjust max height for transaction list */
             }
-            /* .calendar-day-cumulative {
-                font-size: 0.7rem; /* Reduced from 0.8rem */
-            /* } */
-            /* Mobile-specific adjustments for the section-title within the nav-header */
             .nav-header .section-title {
                 font-size: 1.25rem; /* Smaller font for mobile header to fit better */
             }
@@ -986,19 +990,20 @@
     <div id="addTransactionModal" class="modal">
         <div class="modal-content">
             <button class="modal-close-btn" id="closeAddModalBtn">&times;</button>
-            <h2 id="addModalTitle">Add Transaction for <span id="addModalDate"></span></h2>
+            <!-- Removed h2 with addModalTitle and addModalDate span -->
+            <h2 class="text-center">Add Transaction</h2>
 
-            <!-- Existing Transactions for the day -->
-            <div class="mb-4">
+            <!-- Removed Existing Transactions list -->
+            <!-- <div class="mb-4">
                 <h3>Existing Transactions</h3>
                 <div id="addModalTransactionList" class="modal-transaction-list">
                     <p id="noAddModalTransactionsMessage" class="text-gray-500 text-center py-4">No transactions for this day.</p>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Add New Transaction Form -->
             <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
-                <h3>Add New Transaction</h3>
+                <h3 class="text-center">Add New Transaction for <span id="addModalDate" class="font-normal"></span></h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="input-group">
                         <label for="addTransactionType" class="block text-sm mb-1">Type:</label>
@@ -1140,7 +1145,7 @@
     <div id="mobileNavModal" class="modal">
         <div class="modal-content">
             <button class="modal-close-btn" id="closeMobileNavModalBtn">&times;</button>
-            <h2>Menu</h2> <!-- Changed title to "Menu" -->
+            <h2 class="text-center">Menu</h2> <!-- Changed title to "Menu" and added text-center -->
             <div class="mobile-nav-buttons">
                 <button class="mobile-nav-button" data-tab="getting-started">Getting Started</button>
                 <button class="mobile-nav-button" data-tab="overview">Overview</button>
@@ -1220,8 +1225,8 @@
         const addTransactionModal = document.getElementById('addTransactionModal');
         const closeAddModalBtn = document.getElementById('closeAddModalBtn');
         const addModalDateEl = document.getElementById('addModalDate');
-        const addModalTransactionList = document.getElementById('addModalTransactionList');
-        const noAddModalTransactionsMessage = document.getElementById('noAddModalTransactionsMessage');
+        // const addModalTransactionList = document.getElementById('addModalTransactionList'); // Removed
+        // const noAddModalTransactionsMessage = document.getElementById('noAddModalTransactionsMessage'); // Removed
         const addTransactionTypeInput = document.getElementById('addTransactionType');
         const addTransactionNameInput = document.getElementById('addTransactionName');
         const addTransactionAmountInput = document.getElementById('addTransactionAmount');
@@ -1611,6 +1616,7 @@
                         const currentYear = selectedDayDate.getFullYear();
 
                         let potentialDate = new Date(currentYear, currentMonth, nominalDayOfMonth);
+                        // If the nominal day is past the end of the current month (e.g., 31st in Feb), use last day of month
                         if (potentialDate.getMonth() !== currentMonth) {
                             potentialDate = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
                         }
@@ -1672,9 +1678,9 @@
                     dayEl.classList.add('today');
                 }
 
-                dayEl.innerHTML = `<div class="calendar-day-number">${day}</div><div class="calendar-day-transactions"></div><div class="calendar-day-cumulative"></div>`;
+                // Only render cumulative balance in monthly view
+                dayEl.innerHTML = `<div class="calendar-day-number">${day}</div><div class="calendar-day-cumulative"></div>`;
 
-                const transactionsForDayEl = dayEl.querySelector('.calendar-day-transactions');
                 const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
 
                 // Get the balance for this specific day using the new calculation logic
@@ -1690,39 +1696,6 @@
                     formattedCumulativeBalance = `£${Math.floor(balanceForThisDay).toFixed(0)}`;
                 }
                 
-                // Display summarized transactions in the day cell
-                const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
-                let dailyIncome = 0;
-                let dailyExpense = 0;
-
-                transactionsOnThisDayForDisplay.forEach(t => {
-                    if (t.type === 'income') {
-                        dailyIncome += t.amount;
-                    } else if (t.type === 'expense') {
-                        dailyExpense += t.amount;
-                    }
-                });
-
-                // Clear previous content (e.g., "No entries")
-                transactionsForDayEl.innerHTML = '';
-
-                if (dailyIncome > 0) {
-                    const p = document.createElement('p');
-                    // Round down daily income to nearest £1
-                    p.textContent = `+£${Math.floor(dailyIncome).toFixed(0)}`;
-                    p.className = 'text-green-700';
-                    transactionsForDayEl.appendChild(p);
-                }
-                if (dailyExpense > 0) {
-                    const p = document.createElement('p');
-                    // Round down daily expense to nearest £1
-                    p.textContent = `-£${Math.floor(dailyExpense).toFixed(0)}`;
-                    p.className = 'text-red-700';
-                    transactionsForDayEl.appendChild(p);
-                }
-                // If both are 0, nothing is appended, effectively removing "No entries"
-
-
                 cumulativeEl.textContent = formattedCumulativeBalance;
                 if (balanceForThisDay >= 0) { /* Use original balance for color logic */
                     cumulativeEl.classList.add('positive');
@@ -1732,7 +1705,13 @@
                     cumulativeEl.classList.remove('positive');
                 }
 
-                dayEl.addEventListener('click', () => openAddTransactionModal(formattedDate));
+                // Changed: Clicking a day in monthly view now opens daily view
+                dayEl.addEventListener('click', () => {
+                    currentCalendarView = 'daily';
+                    currentDailyDate = date; // Set the clicked date as the current daily date
+                    calendarViewToggle.checked = true; // Update the toggle switch
+                    updateCalendarView(); // Re-render in daily view
+                });
                 calendarDaysEl.appendChild(dayEl);
             }
         }
@@ -1749,12 +1728,12 @@
                 <div class="calendar-day-number">${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                 <div class="calendar-day-transactions"></div>
                 <div class="calendar-day-cumulative"></div>
-                <button class="add-transaction-daily-btn">Add New Transaction</button>
+                <button class="btn-primary">Add New Transaction</button> <!-- Changed class to btn-primary -->
             `;
 
             const transactionsForDayEl = dayEl.querySelector('.calendar-day-transactions');
             const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
-            const addTransactionDailyBtn = dayEl.querySelector('.add-transaction-daily-btn');
+            const addTransactionDailyBtn = dayEl.querySelector('.btn-primary'); // Select by new class
 
             const balanceForThisDay = calculateBalanceUpToDate(date);
             // Round down to the nearest whole pound for display in daily view
@@ -1841,7 +1820,7 @@
                 currentDailyContentEl = renderDailyViewContent(currentDailyDate, calendarDaysEl);
 
                 // Update header
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' });
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
                 prevMonthBtn.textContent = '< Prev Day';
                 nextMonthBtn.textContent = 'Next Day >';
             }
@@ -1893,8 +1872,7 @@
                 currentDailyDate.setDate(currentDailyDate.getDate() - 1);
                 currentMonth = currentDailyDate.getMonth();
                 currentYear = currentDailyDate.getFullYear();
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' }); // Update year in header
-
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
                 // Clean up old element after transition
                 if (currentDailyContentEl) {
                     currentDailyContentEl.addEventListener('transitionend', function handler() {
@@ -1940,7 +1918,7 @@
                 currentDailyDate.setDate(currentDailyDate.getDate() + 1);
                 currentMonth = currentDailyDate.getMonth();
                 currentYear = currentDailyDate.getFullYear();
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' }); // Update year in header
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
 
                 // Clean up old element after transition
                 if (currentDailyContentEl) {
@@ -2048,7 +2026,7 @@
                     }
 
                     // Update header to reflect new date
-                    currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' });
+                    currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
 
                     // Clean up old element after transition
                     if (currentDailyContentEl) {
@@ -2089,7 +2067,7 @@
         function openAddTransactionModal(date) {
             selectedDate = date;
             addModalDateEl.textContent = new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-            renderAddModalTransactions(date);
+            // renderAddModalTransactions(date); // Removed call to render existing transactions
             openModal(addTransactionModal); // Use generic open modal function
         }
 
@@ -2112,46 +2090,7 @@
             addTransactionRepeatGroup.classList.remove('hidden');
         }
 
-        function renderAddModalTransactions(date) {
-            addModalTransactionList.innerHTML = '';
-            const transactionsOnSelectedDay = getTransactionsEffectiveOnDate(date);
-
-            if (transactionsOnSelectedDay.length === 0) {
-                noAddModalTransactionsMessage.classList.remove('hidden');
-            } else {
-                noAddModalTransactionsMessage.classList.add('hidden');
-                transactionsOnSelectedDay.forEach((t) => {
-                    const div = document.createElement('div');
-                    div.className = 'modal-transaction-item';
-                    const repeatText = t.repeat !== 'none' ? ` (Repeats ${t.repeat})` : '';
-                    const displayType = t.type === 'income' ? '+' : '-'; // No startingBalance type anymore
-                    const displayAmount = `${displayType}£${t.amount.toFixed(2)}`;
-
-                    div.innerHTML = `
-                        <div>
-                            <p class="font-semibold">${t.name}</p>
-                            <p class="text-sm text-gray-600">${displayAmount}${repeatText}</p>
-                        </div>
-                        <div class="flex items-center gap-2"> <!-- Added flex and gap for button alignment -->
-                            <button class="btn-edit" data-id="${t.id}" data-instance-date="${date}">Edit</button>
-                            <button class="btn-delete" data-id="${t.id}">Delete</button>
-                        </div>
-                    `;
-                    // Attach event listeners to the buttons
-                    div.querySelector('.btn-edit').addEventListener('click', (e) => {
-                        openEditTransactionModal(parseInt(e.target.dataset.id), e.target.dataset.instanceDate);
-                    });
-                    div.querySelector('.btn-delete').addEventListener('click', (e) => {
-                        const transactionIdToDelete = parseInt(e.target.dataset.id);
-                        transactions = transactions.filter(tx => tx.id !== transactionIdToDelete);
-                        localStorage.setItem('transactions', JSON.stringify(transactions));
-                        showMessage('Transaction deleted!');
-                        renderAddModalTransactions(selectedDate); // Re-render modal list
-                    });
-                    addModalTransactionList.appendChild(div);
-                });
-            }
-        }
+        // Removed renderAddModalTransactions function as it's no longer needed
 
         // --- Edit Transaction Modal Logic ---
         function openEditTransactionModal(transactionId, instanceDate) {
@@ -2171,7 +2110,7 @@
 
             toggleEditRepeatOptions(); // Adjust repeat options visibility
 
-            closeModal(addTransactionModal); // Hide add modal
+            // closeModal(addTransactionModal); // No need to close add modal if it's not open
             openModal(editTransactionModal); // Show edit modal
         }
 
@@ -2179,8 +2118,10 @@
             closeModal(editTransactionModal); // Use generic close modal function
             editingTransactionId = null;
             editingTransactionInstanceDate = null;
-            renderAddModalTransactions(selectedDate); // Re-render add modal list
-            openModal(addTransactionModal); // Show add modal again
+            // renderAddModalTransactions(selectedDate); // Re-render add modal list - not needed anymore
+            // openModal(addTransactionModal); // No need to open add modal again
+            updateCalendarView(); // Re-render calendar
+            renderOverview(); // Re-render overview
         }
 
         // Toggle visibility of repeat options based on transaction type for Edit Modal
@@ -2855,12 +2796,16 @@
             transactions.push(newTransaction);
             localStorage.setItem('transactions', JSON.stringify(transactions));
             showMessage('Transaction added successfully!');
-            renderAddModalTransactions(selectedDate); // Update modal list
+            // renderAddModalTransactions(selectedDate); // Removed call to render existing transactions
             // Clear form fields
             addTransactionNameInput.value = '';
             addTransactionAmountInput.value = '';
             addTransactionRepeatInput.value = 'none';
             toggleAddRepeatOptions();
+            // After adding, re-render the daily view if it's currently active for the selected date
+            if (currentCalendarView === 'daily' && formatDate(currentDailyDate) === selectedDate) {
+                updateCalendarView();
+            }
         });
 
         saveEditedTransactionBtn.addEventListener('click', () => {
