@@ -1643,8 +1643,8 @@
             calendarDaysEl.style.transition = 'none'; // Disable transition before new content is rendered
 
             currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-            prevMonthBtn.textContent = '< Prev';
-            nextMonthBtn.textContent = 'Next >';
+            // prevMonthBtn.textContent = '< Prev'; // Removed: Keep original text
+            // nextMonthBtn.textContent = 'Next >'; // Removed: Keep original text
 
             const daysInMonth = getDaysInMonth(currentYear, currentMonth);
             const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth); // 0 (Sun) - 6 (Sat)
@@ -1816,9 +1816,7 @@
                 renderCalendar(); // This function now directly populates calendarDaysEl
 
                 currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-                prevMonthBtn.textContent = '< Prev';
-                nextMonthBtn.textContent = 'Next >';
-
+                // No change to button text here
             } else { // daily view
                 // Clean up monthly view elements if switching from monthly
                 // The currentMonthContentEl is no longer used, as renderCalendar directly populates calendarDaysEl.
@@ -1835,8 +1833,7 @@
 
                 // Update header
                 currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); // Changed to show full date
-                prevMonthBtn.textContent = '< Prev';
-                nextMonthBtn.textContent = 'Next >';
+                // No change to button text here
             }
         }
 
@@ -2835,6 +2832,9 @@
         addTransactionTypeInput.addEventListener('change', toggleAddRepeatOptions);
 
         addTransactionBtn.addEventListener('click', () => {
+            // Explicitly blur the select element to ensure it loses focus
+            addTransactionRepeatInput.blur();
+
             const type = addTransactionTypeInput.value;
             const name = addTransactionNameInput.value.trim();
             const amount = parseFloat(addTransactionAmountInput.value);
