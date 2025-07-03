@@ -16,10 +16,16 @@
         .container {
             max-width: 1200px; /* Wider container for calendar */
             margin: 2rem auto;
-            padding: 1.5rem;
+            padding: 1.5rem; /* Default padding */
             background-color: #ffffff;
             border-radius: 1rem; /* More rounded corners */
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Softer shadow */
+        }
+        /* Responsive padding for container */
+        @media (max-width: 767px) { /* For screens smaller than md (768px) */
+            .container {
+                padding: 1rem; /* Smaller padding on mobile */
+            }
         }
         .section-title {
             font-size: 1.75rem; /* Larger title */
@@ -141,15 +147,15 @@
 
         /* Calendar specific styles */
         .calendar-header {
-            display: flex;
-            justify-content: space-between;
+            display: grid; /* Changed to grid */
+            grid-template-columns: 1fr auto 1fr; /* For centering title */
             align-items: center;
             margin-bottom: 1rem;
             padding: 0.5rem 0;
         }
         .calendar-grid {
             display: grid;
-            grid-template-columns: repeat(7, minmax(90px, 1fr)); /* Adjusted for minimum width */
+            grid-template-columns: repeat(7, minmax(80px, 1fr)); /* Adjusted for minimum width */
             gap: 0.5rem;
         }
         .calendar-day-header {
@@ -371,11 +377,11 @@
 
         <!-- Calendar Tab Content -->
         <div id="calendarTabContent" class="tab-content active">
-            <div class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
+            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
                 <div class="calendar-header">
-                    <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg">&lt; Prev</button>
-                    <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800"></h2>
-                    <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg">Next &gt;</button>
+                    <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start">&lt; Prev</button>
+                    <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800 text-center"></h2>
+                    <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-end">Next &gt;</button>
                 </div>
                 <div class="calendar-grid">
                     <div class="calendar-day-header">Sun</div>
