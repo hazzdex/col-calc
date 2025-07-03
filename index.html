@@ -30,6 +30,8 @@
         /* New style to prevent body scrolling when modal is open */
         body.modal-open {
             overflow: hidden;
+            position: fixed; /* Prevent scrolling when modal is open */
+            width: 100%; /* Maintain width when scrollbar is removed */
         }
         .container {
             max-width: 1200px; /* Wider container for calendar */
@@ -538,19 +540,103 @@
             color: #475569;
             line-height: 1.5;
         }
+
+        /* Responsive Calendar Adjustments for Monthly View on Mobile */
+        @media (max-width: 767px) {
+            .calendar-grid-header-row,
+            .calendar-grid-days {
+                grid-template-columns: repeat(7, 1fr); /* Force equal width columns on mobile */
+                gap: 0.2rem; /* Reduce gap to save space */
+            }
+            .calendar-day {
+                min-height: 100px; /* Slightly reduce height for mobile monthly view */
+                padding: 0.5rem; /* Reduce padding */
+            }
+            .calendar-day-number {
+                font-size: 0.9rem; /* Smaller day number */
+            }
+            .calendar-day-transactions {
+                font-size: 0.65rem; /* Smaller transaction text */
+                max-height: 45px; /* Adjust max height for transaction list */
+            }
+            .calendar-day-cumulative {
+                font-size: 0.8rem; /* Smaller cumulative text */
+            }
+        }
+
+        /* Navigation Menu Styles */
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .menu-toggle-btn {
+            display: none; /* Hidden by default, shown on mobile */
+            background: none;
+            border: none;
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600;
+            color: #6366f1;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .menu-toggle-btn:hover {
+            background-color: #e0e7ff;
+        }
+
+        @media (max-width: 767px) {
+            .menu-toggle-btn {
+                display: block; /* Show menu button on mobile */
+            }
+            .tab-buttons {
+                display: none; /* Hide tab buttons by default on mobile */
+                flex-direction: column;
+                position: absolute;
+                top: 100%; /* Position below the header */
+                left: 0;
+                width: 100%;
+                background-color: #ffffff;
+                border-bottom: 2px solid #e2e8f0;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                z-index: 50; /* Ensure it's above other content but below modals */
+                padding: 0.5rem 0;
+            }
+            .tab-buttons.active {
+                display: flex; /* Show tab buttons when active */
+            }
+            .tab-button {
+                width: 100%;
+                text-align: left;
+                padding: 0.75rem 1.5rem;
+                border-bottom: none; /* Remove individual button borders */
+            }
+            .tab-button.active {
+                border-color: transparent; /* No bottom border when active in mobile menu */
+                background-color: #eff6ff; /* Highlight active tab in menu */
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="section-title">The Cost of Living Calculator</h1>
+        <div class="nav-header">
+            <h1 class="section-title flex-grow text-left md:text-center">The Cost of Living Calculator</h1>
+            <button id="menuToggleBtn" class="menu-toggle-btn">Menu</button>
+        </div>
 
-        <!-- Tab Buttons -->
-        <div class="tab-buttons">
-            <button class="tab-button" data-tab="getting-started">Getting Started</button>
-            <button class="tab-button active" data-tab="overview">Overview</button>
-            <button class="tab-button" data-tab="calendar">Calendar</button>
-            <button class="tab-button" data-tab="pay-estimator">Pay Estimator</button>
-            <button class="tab-button" data-tab="universal-credit">UC Estimator</button>
+        <!-- Tab Buttons Container -->
+        <div id="navMenuContainer" class="relative">
+            <div class="tab-buttons">
+                <button class="tab-button" data-tab="getting-started">Getting Started</button>
+                <button class="tab-button active" data-tab="overview">Overview</button>
+                <button class="tab-button" data-tab="calendar">Calendar</button>
+                <button class="tab-button" data-tab="pay-estimator">Pay Estimator</button>
+                <button class="tab-button" data-tab="universal-credit">UC Estimator</button>
+            </div>
         </div>
 
         <!-- Getting Started Tab Content (New Tab) -->
@@ -629,7 +715,7 @@
             </div>
 
             <!-- Calendar Grid Container (with horizontal scrolling) -->
-            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto calendar-daily-view-container">
+            <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
                 <div id="calendarContentWrapper">
                     <div class="calendar-grid-header-row">
                         <div class="calendar-day-header">Sun</div>
@@ -1101,6 +1187,8 @@
         const confirmAddUcBtn = document.getElementById('confirmAddUcBtn');
 
         const calendarViewToggle = document.getElementById('calendarViewToggle'); // New toggle switch element
+        const menuToggleBtn = document.getElementById('menuToggleBtn'); // New menu toggle button
+        const navMenuContainer = document.getElementById('navMenuContainer'); // New container for nav menu
 
 
         let selectedDate = null; // Date of the day clicked on the calendar
@@ -1397,7 +1485,13 @@
             calendarDaysEl.innerHTML = '';
             calendarContentWrapper.classList.remove('calendar-daily-view-container'); // Remove daily view specific class
             calendarGridHeaderRow.style.display = 'grid'; // Show header for monthly view
-            calendarDaysEl.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Set grid for monthly view
+            
+            // Set grid for monthly view - responsive
+            if (isMobileView()) {
+                calendarDaysEl.style.gridTemplateColumns = 'repeat(7, 1fr)'; // Force equal width columns on mobile
+            } else {
+                calendarDaysEl.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Default for desktop
+            }
 
             currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
             prevMonthBtn.textContent = '< Prev';
@@ -2480,6 +2574,9 @@
         // Tab switching logic
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
+                // Close mobile menu if open
+                navMenuContainer.classList.remove('active');
+
                 // Remove active class from all buttons and hide all content
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -2512,6 +2609,20 @@
                 }
             });
         });
+
+        // Toggle mobile menu visibility
+        menuToggleBtn.addEventListener('click', () => {
+            navMenuContainer.classList.toggle('active');
+        });
+
+        // Close mobile menu if clicked outside (on desktop, this won't apply as menu is always visible)
+        document.addEventListener('click', (e) => {
+            if (isMobileView() && navMenuContainer.classList.contains('active') &&
+                !navMenuContainer.contains(e.target) && !menuToggleBtn.contains(e.target)) {
+                navMenuContainer.classList.remove('active');
+            }
+        });
+
 
         // Initial render on page load
         document.addEventListener('DOMContentLoaded', () => {
