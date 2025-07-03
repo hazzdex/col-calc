@@ -1594,21 +1594,36 @@
                 // Get the balance for this specific day using the new calculation logic
                 const balanceForThisDay = calculateBalanceUpToDate(date);
                 
-                // Display transactions in the day cell
+                // Display summarized transactions in the day cell
                 const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
-                if (transactionsOnThisDayForDisplay.length > 0) {
-                    transactionsOnThisDayForDisplay.forEach(t => {
-                        const p = document.createElement('p');
-                        p.textContent = `${t.type === 'income' ? '+' : '-'}£${t.amount.toFixed(2)} ${t.name}`;
-                        p.className = t.type === 'income' ? 'text-green-700' : 'text-red-700';
-                        transactionsForDayEl.appendChild(p);
-                    });
-                } else {
-                     const p = document.createElement('p');
-                     p.textContent = 'No entries';
-                     p.className = 'text-gray-400';
-                     transactionsForDayEl.appendChild(p);
+                let dailyIncome = 0;
+                let dailyExpense = 0;
+
+                transactionsOnThisDayForDisplay.forEach(t => {
+                    if (t.type === 'income') {
+                        dailyIncome += t.amount;
+                    } else if (t.type === 'expense') {
+                        dailyExpense += t.amount;
+                    }
+                });
+
+                // Clear previous content (e.g., "No entries")
+                transactionsForDayEl.innerHTML = '';
+
+                if (dailyIncome > 0) {
+                    const p = document.createElement('p');
+                    p.textContent = `+£${dailyIncome.toFixed(2)}`;
+                    p.className = 'text-green-700';
+                    transactionsForDayEl.appendChild(p);
                 }
+                if (dailyExpense > 0) {
+                    const p = document.createElement('p');
+                    p.textContent = `-£${dailyExpense.toFixed(2)}`;
+                    p.className = 'text-red-700';
+                    transactionsForDayEl.appendChild(p);
+                }
+                // If both are 0, nothing is appended, effectively removing "No entries"
+
 
                 cumulativeEl.textContent = `£${balanceForThisDay.toFixed(2)}`;
                 if (balanceForThisDay >= 0) {
