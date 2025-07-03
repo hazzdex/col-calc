@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Financial Tracker - Calendar View</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            color: #334155; /* Darker text color */
+        }
+        .container {
+            max-width: 1200px; /* Wider container for calendar */
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border-radius: 1rem; /* More rounded corners */
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Softer shadow */
+        }
+        .section-title {
+            font-size: 1.75rem; /* Larger title */
+            font-weight: 700; /* Bold */
+            color: #1e293b; /* Even darker title color */
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #475569;
+        }
+        .input-group input, .input-group select {
+            border: 1px solid #cbd5e1; /* Light gray border */
+            border-radius: 0.5rem; /* Rounded input fields */
+            padding: 0.75rem 1rem;
+            width: 100%;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #6366f1; /* Indigo focus color */
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); /* Soft focus ring */
+        }
+        .btn-primary {
+            background-color: #6366f1; /* Indigo button */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary:hover {
+            background-color: #4f46e5; /* Darker indigo on hover */
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background-color: #e2e8f0; /* Light gray button */
+            color: #475569;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-secondary:hover {
+            background-color: #cbd5e1; /* Darker gray on hover */
+            transform: translateY(-1px);
+        }
+        .btn-delete {
+            background-color: #ef4444; /* Red delete button */
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.3rem;
+            font-size: 0.8rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-delete:hover {
+            background-color: #dc2626; /* Darker red on hover */
+        }
+        .btn-edit {
+            background-color: #3b82f6; /* Blue edit button */
+            color: white;
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.3rem;
+            font-size: 0.8rem;
+            transition: background-color 0.2s ease-in-out;
+            margin-left: 0.5rem; /* Space from delete button */
+        }
+        .btn-edit:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+        }
+        .list-item {
+            background-color: #f8fafc; /* Lighter background for list items */
+            border: 1px solid #e2e8f0; /* Lighter border */
+            border-radius: 0.75rem; /* Rounded list items */
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+        }
+        .summary-card {
+            background-color: #e0f2fe; /* Light blue for summary */
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        .summary-card.positive {
+            background-color: #d1fae5; /* Green for positive cash flow */
+            color: #065f46;
+        }
+        .summary-card.negative {
+            background-color: #fee2e2; /* Red for negative cash flow */
+            color: #991b1b;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .message-box.show {
+            opacity: 1;
+        }
+
+        /* Calendar specific styles */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem 0;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            color: #475569;
+            padding: 0.5rem;
+        }
+        .calendar-day {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            min-height: 120px; /* Increased height for content */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+            position: relative; /* For cumulative total positioning */
+        }
+        .calendar-day:hover {
+            background-color: #eff6ff; /* Light blue on hover */
+            border-color: #93c5fd; /* Light blue border on hover */
+        }
+        .calendar-day.today {
+            border: 2px solid #6366f1; /* Highlight today */
+            background-color: #e0e7ff; /* Lighter indigo background */
+        }
+        .calendar-day.inactive {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        .calendar-day-number {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+        .calendar-day-transactions {
+            font-size: 0.75rem;
+            color: #64748b;
+            flex-grow: 1; /* Allows content to take available space */
+            width: 100%;
+            overflow-y: auto; /* Enable scrolling for many transactions */
+            max-height: 60px; /* Limit height of transaction list */
+        }
+        .calendar-day-transactions p {
+            margin-bottom: 0.2rem;
+            white-space: nowrap; /* Prevent wrapping */
+            overflow: hidden; /* Hide overflow */
+            text-overflow: ellipsis; /* Show ellipsis */
+        }
+        .calendar-day-cumulative {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            align-self: flex-end; /* Position at bottom right */
+            color: #1e293b;
+        }
+        .calendar-day-cumulative.positive {
+            color: #065f46; /* Green for positive */
+        }
+        .calendar-day-cumulative.negative {
+            color: #991b1b; /* Red for negative */
+        }
+
+        /* Modal styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+        .modal-close-btn:hover {
+            color: #1e293b;
+        }
+        .modal-transaction-list {
+            max-height: 200px; /* Limit height of transactions in modal */
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 1rem;
+        }
+        .modal-transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .modal-transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Edit Modal specific styles */
+        .edit-scope-options label {
+            display: block;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+        .edit-scope-options input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+
+        /* Tab styles */
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #64748b;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        }
+        .tab-button.active {
+            color: #6366f1;
+            border-color: #6366f1;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Overview specific styles */
+        .overview-card {
+            background-color: #fff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        .overview-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+        .overview-card p {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .overview-card .value {
+            font-weight: 700;
+            color: #334155;
+        }
+        .overview-card .value.positive {
+            color: #065f46;
+        }
+        .overview-card .value.negative {
+            color: #991b1b;
+        }
+        .overview-transaction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .overview-transaction-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container">
+        <h1 class="section-title">Personal Financial Tracker</h1>
+
+        <!-- Tab Buttons -->
+        <div class="tab-buttons">
+            <button class="tab-button active" data-tab="calendar">Calendar</button>
+            <button class="tab-button" data-tab="overview">Overview</button>
+        </div>
+
+        <!-- Calendar Tab Content -->
+        <div id="calendarTabContent" class="tab-content active">
+            <div class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner">
+                <div class="calendar-header">
+                    <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg">&lt; Prev</button>
+                    <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800"></h2>
+                    <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg">Next &gt;</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+                    <!-- Calendar days will be generated here -->
+                </div>
+                <div id="calendarDays" class="calendar-grid mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Overview Tab Content -->
+        <div id="overviewTabContent" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="overview-card">
+                    <h3>Current Balance</h3>
+                    <p class="text-3xl font-bold"><span id="overviewCurrentBalance" class="value">£0.00</span></p>
+                </div>
+                <div class="overview-card">
+                    <h3>Next Income</h3>
+                    <p>Days until next income: <span id="overviewDaysUntilNextIncome" class="value">Calculating...</span></p>
+                    <p>Next income amount: <span id="overviewNextIncomeAmount" class="value">£0.00</span></p>
+                    <p>Next income date: <span id="overviewNextIncomeDate" class="value">N/A</span></p>
+                </div>
+                <div class="overview-card md:col-span-2">
+                    <h3>Lowest Balance until Next Income</h3>
+                    <p>Maximum for additional spending: <span id="overviewLowestBalance" class="value">£0.00</span></p>
+                    <p class="text-sm text-gray-600">This is the lowest your balance will drop before your next income. It indicates how much you can spend without going below this point.</p>
+                </div>
+                <div class="overview-card md:col-span-2">
+                    <h3>Today's Transactions</h3>
+                    <div id="overviewTodaysTransactionsList">
+                        <p class="text-gray-500 text-center py-4">No transactions for today.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div id="addTransactionModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeAddModalBtn">&times;</button>
+            <h2 id="addModalTitle" class="text-2xl font-semibold text-gray-800 mb-4">Add Transaction for <span id="addModalDate"></span></h2>
+
+            <!-- Existing Transactions for the day -->
+            <div class="mb-4">
+                <h3 class="text-xl font-medium mb-2">Existing Transactions</h3>
+                <div id="addModalTransactionList" class="modal-transaction-list">
+                    <p id="noAddModalTransactionsMessage" class="text-gray-500 text-center py-4">No transactions for this day.</p>
+                </div>
+            </div>
+
+            <!-- Add New Transaction Form -->
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
+                <h3 class="text-xl font-medium mb-2">Add New Transaction</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="input-group">
+                        <label for="addTransactionType" class="block text-sm mb-1">Type:</label>
+                        <select id="addTransactionType" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                            <option value="startingBalance">Starting Balance</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="addTransactionName" class="block text-sm mb-1">Name/Source:</label>
+                        <input type="text" id="addTransactionName" placeholder="e.g., Rent, Salary, Initial Funds" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="addTransactionAmount" class="block text-sm mb-1">Amount (£):</label>
+                        <input type="number" id="addTransactionAmount" placeholder="e.g., 1200.00" step="0.01" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="input-group" id="addTransactionRepeatGroup">
+                        <label for="addTransactionRepeat" class="block text-sm mb-1">Repeat:</label>
+                        <select id="addTransactionRepeat" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="none">None</option>
+                            <option value="daily">Every Day</option>
+                            <option value="weekly">Every Week</option>
+                            <option value="bi-weekly">Every Two Weeks</option>
+                            <option value="four-weekly">Every Four Weeks</option>
+                            <option value="monthly">Monthly (same day)</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="addTransactionBtn" class="btn-primary w-full">Add Transaction</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Transaction Modal -->
+    <div id="editTransactionModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeEditModalBtn">&times;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Edit Transaction</h2>
+
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="input-group">
+                        <label for="editTransactionType" class="block text-sm mb-1">Type:</label>
+                        <select id="editTransactionType" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                            <option value="startingBalance">Starting Balance</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="editTransactionName" class="block text-sm mb-1">Name/Source:</label>
+                        <input type="text" id="editTransactionName" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="editTransactionAmount" class="block text-sm mb-1">Amount (£):</label>
+                        <input type="number" id="editTransactionAmount" step="0.01" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="input-group" id="editTransactionRepeatGroup">
+                        <label for="editTransactionRepeat" class="block text-sm mb-1">Repeat:</label>
+                        <select id="editTransactionRepeat" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="none">None</option>
+                            <option value="daily">Every Day</option>
+                            <option value="weekly">Every Week</option>
+                            <option value="bi-weekly">Every Two Weeks</option>
+                            <option value="four-weekly">Every Four Weeks</option>
+                            <option value="monthly">Monthly (same day)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="saveEditedTransactionBtn" class="btn-primary w-full">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Message Box for notifications -->
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        // Function to show a temporary message box
+        function showMessage(message, duration = 3000) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, duration);
+        }
+
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+        // UK Bank Holidays (YYYY-MM-DD format) - Manually maintained
+        // This list should be updated for future years for full accuracy.
+        const bankHolidays = [
+            "2024-01-01", // New Year's Day
+            "2024-03-29", // Good Friday
+            "2024-04-01", // Easter Monday
+            "2024-05-06", // Early May Bank Holiday
+            "2024-05-27", // Spring Bank Holiday
+            "2024-08-26", // Summer Bank Holiday
+            "2024-12-25", // Christmas Day
+            "2024-12-26", // Boxing Day
+            "2025-01-01", // New Year's Day
+            "2025-04-18", // Good Friday
+            "2025-04-21", // Easter Monday
+            "2025-05-05", // Early May Bank Holiday
+            "2025-05-26", // Spring Bank Holiday
+            "2025-08-25", // Summer Bank Holiday
+            "2025-12-25", // Christmas Day
+            "2025-12-26", // Boxing Day
+            // Add more years as needed
+        ].map(d => formatDate(new Date(d))); // Ensure consistent formatting
+
+        const calendarDaysEl = document.getElementById('calendarDays');
+        const currentMonthYearEl = document.getElementById('currentMonthYear');
+        const prevMonthBtn = document.getElementById('prevMonthBtn');
+        const nextMonthBtn = document.getElementById('nextMonthBtn');
+
+        // Tab Elements
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const calendarTabContent = document.getElementById('calendarTabContent');
+        const overviewTabContent = document.getElementById('overviewTabContent');
+
+        // Add Transaction Modal Elements
+        const addTransactionModal = document.getElementById('addTransactionModal');
+        const closeAddModalBtn = document.getElementById('closeAddModalBtn');
+        const addModalDateEl = document.getElementById('addModalDate');
+        const addModalTransactionList = document.getElementById('addModalTransactionList');
+        const noAddModalTransactionsMessage = document.getElementById('noAddModalTransactionsMessage');
+        const addTransactionTypeInput = document.getElementById('addTransactionType');
+        const addTransactionNameInput = document.getElementById('addTransactionName');
+        const addTransactionAmountInput = document.getElementById('addTransactionAmount');
+        const addTransactionRepeatInput = document.getElementById('addTransactionRepeat');
+        const addTransactionRepeatGroup = document.getElementById('addTransactionRepeatGroup');
+        const addTransactionBtn = document.getElementById('addTransactionBtn');
+
+        // Edit Transaction Modal Elements
+        const editTransactionModal = document.getElementById('editTransactionModal');
+        const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+        const editTransactionTypeInput = document.getElementById('editTransactionType');
+        const editTransactionNameInput = document.getElementById('editTransactionName');
+        const editTransactionAmountInput = document.getElementById('editTransactionAmount');
+        const editTransactionRepeatInput = document.getElementById('editTransactionRepeat');
+        const editTransactionRepeatGroup = document.getElementById('editTransactionRepeatGroup');
+        const saveEditedTransactionBtn = document.getElementById('saveEditedTransactionBtn');
+
+        // Overview Elements
+        const overviewCurrentBalanceEl = document.getElementById('overviewCurrentBalance');
+        const overviewDaysUntilNextIncomeEl = document.getElementById('overviewDaysUntilNextIncome');
+        const overviewNextIncomeAmountEl = document.getElementById('overviewNextIncomeAmount');
+        const overviewNextIncomeDateEl = document.getElementById('overviewNextIncomeDate');
+        const overviewLowestBalanceEl = document.getElementById('overviewLowestBalance');
+        const overviewTodaysTransactionsListEl = document.getElementById('overviewTodaysTransactionsList');
+
+
+        let selectedDate = null; // Date of the day clicked on the calendar
+        let editingTransactionId = null; // ID of the transaction being edited
+        let editingTransactionInstanceDate = null; // The specific date of the instance being edited
+
+        // --- Date Utility Functions ---
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function getFirstDayOfMonth(year, month) {
+            return new Date(year, month, 1).getDay(); // 0 for Sunday, 1 for Monday, etc.
+        }
+
+        function formatDate(date) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = (d.getMonth() + 1).toString().padStart(2, '0');
+            const day = d.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseDate(dateString) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        // Checks if a given date is a weekend (Sat/Sun) or a bank holiday
+        function isWorkingDay(date) {
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            if (dayOfWeek === 0 || dayOfWeek === 6) { // Weekend
+                return false;
+            }
+            const formattedDate = formatDate(date);
+            if (bankHolidays.includes(formattedDate)) { // Bank Holiday
+                return false;
+            }
+            return true;
+        }
+
+        // Finds the next available working day, including the current date if it's a working day
+        function getNextWorkingDay(date) {
+            let currentCheckDate = new Date(date);
+            currentCheckDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+            while (!isWorkingDay(currentCheckDate)) {
+                currentCheckDate.setDate(currentCheckDate.getDate() + 1);
+            }
+            return currentCheckDate;
+        }
+
+        /**
+         * Calculates the cumulative balance up to a specific target date (inclusive).
+         * Returns the final balance.
+         */
+        function calculateBalanceUpToDate(targetDate) {
+            const allTransactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            let cumulativeBalance = 0;
+
+            const startingBalanceTx = allTransactions.find(t => t.type === 'startingBalance');
+            let calculationStartDate = null;
+
+            if (startingBalanceTx) {
+                calculationStartDate = parseDate(startingBalanceTx.date);
+                cumulativeBalance = startingBalanceTx.amount;
+            } else {
+                const nonStartingBalanceTransactions = allTransactions.filter(t => t.type !== 'startingBalance');
+                if (nonStartingBalanceTransactions.length > 0) {
+                    calculationStartDate = nonStartingBalanceTransactions.reduce((minDate, t) => {
+                        const txDate = parseDate(t.date);
+                        return txDate < minDate ? txDate : minDate;
+                    }, parseDate(nonStartingBalanceTransactions[0].date));
+                } else {
+                    return 0; // No transactions at all
+                }
+            }
+
+            calculationStartDate.setHours(0, 0, 0, 0);
+            targetDate.setHours(0, 0, 0, 0);
+
+            let currentDateIterator = new Date(calculationStartDate);
+
+            while (currentDateIterator.getTime() <= targetDate.getTime()) {
+                let dailyNet = 0;
+                const formattedCurrentDate = formatDate(currentDateIterator);
+
+                allTransactions.forEach(t => {
+                    if (t.type === 'startingBalance') {
+                        return;
+                    }
+
+                    const transactionStartDate = parseDate(t.date);
+                    let nominalOccurrenceDate = null;
+
+                    if (transactionStartDate.getTime() > currentDateIterator.getTime()) {
+                        return;
+                    }
+                    if (t.endDate && parseDate(t.endDate).getTime() < currentDateIterator.getTime()) {
+                        return;
+                    }
+
+                    const diffTime = currentDateIterator.getTime() - transactionStartDate.getTime();
+                    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                    switch (t.repeat) {
+                        case 'none':
+                            if (t.date === formattedCurrentDate) {
+                                nominalOccurrenceDate = currentDateIterator;
+                            }
+                            break;
+                        case 'daily':
+                            nominalOccurrenceDate = currentDateIterator;
+                            break;
+                        case 'weekly':
+                            if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 7 === 0) {
+                                nominalOccurrenceDate = currentDateIterator;
+                            }
+                            break;
+                        case 'bi-weekly':
+                            if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 14 === 0) {
+                                nominalOccurrenceDate = currentDateIterator;
+                            }
+                            break;
+                        case 'four-weekly':
+                            if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 28 === 0) {
+                                nominalOccurrenceDate = currentDateIterator;
+                            }
+                            break;
+                        case 'monthly':
+                            const nominalDateForMonth = new Date(currentDateIterator.getFullYear(), currentDateIterator.getMonth(), transactionStartDate.getDate());
+                            if (nominalDateForMonth.getTime() >= transactionStartDate.getTime()) {
+                                nominalOccurrenceDate = nominalDateForMonth;
+                            }
+                            break;
+                    }
+
+                    if (nominalOccurrenceDate) {
+                        const effectiveDate = getNextWorkingDay(nominalOccurrenceDate);
+                        if (formatDate(effectiveDate) === formattedCurrentDate) {
+                            dailyNet += (t.type === 'income' ? t.amount : -t.amount);
+                        }
+                    }
+                });
+
+                if (!startingBalanceTx || currentDateIterator.getTime() > parseDate(startingBalanceTx.date).getTime()) {
+                    cumulativeBalance += dailyNet;
+                } else if (startingBalanceTx && currentDateIterator.getTime() === parseDate(startingBalanceTx.date).getTime()) {
+                    cumulativeBalance += dailyNet;
+                }
+
+                currentDateIterator.setDate(currentDateIterator.getDate() + 1);
+            }
+            return cumulativeBalance;
+        }
+
+
+        /**
+         * Returns an array of transactions effective on a specific date.
+         * @param {string} dateString - The date in YYYY-MM-DD format.
+         * @returns {Array} List of transactions effective on that date.
+         */
+        function getTransactionsEffectiveOnDate(dateString) {
+            const allTransactions = JSON.parse(localStorage.getItem('transactions')) || [];
+            const selectedDayDate = parseDate(dateString);
+            selectedDayDate.setHours(0, 0, 0, 0);
+
+            const effectiveTransactions = [];
+
+            allTransactions.forEach(t => {
+                const transactionDate = parseDate(t.date);
+                transactionDate.setHours(0, 0, 0, 0);
+
+                // Check if the current date is within the transaction's active period (start and end date)
+                if (transactionDate.getTime() > selectedDayDate.getTime()) {
+                    return; // Transaction hasn't started yet
+                }
+                if (t.endDate && parseDate(t.endDate).getTime() < selectedDayDate.getTime()) {
+                    return; // Transaction has ended
+                }
+
+                // Special handling for startingBalance: only display it on its exact date
+                if (t.type === 'startingBalance') {
+                    if (t.date === dateString) {
+                        effectiveTransactions.push({ ...t, type: 'income', name: `Starting Balance: ${t.name}` });
+                    }
+                    return;
+                }
+
+                let nominalOccurrenceDate = null;
+                const diffTime = selectedDayDate.getTime() - transactionDate.getTime();
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                switch (t.repeat) {
+                    case 'none':
+                        if (t.date === dateString) {
+                            nominalOccurrenceDate = selectedDayDate;
+                        }
+                        break;
+                    case 'daily':
+                        nominalOccurrenceDate = selectedDayDate;
+                        break;
+                    case 'weekly':
+                        if (selectedDayDate.getDay() === transactionDate.getDay() && diffDays % 7 === 0) {
+                            nominalOccurrenceDate = selectedDayDate;
+                        }
+                        break;
+                    case 'bi-weekly':
+                        if (selectedDayDate.getDay() === transactionDate.getDay() && diffDays % 14 === 0) {
+                            nominalOccurrenceDate = selectedDayDate;
+                        }
+                        break;
+                    case 'four-weekly':
+                        if (selectedDayDate.getDay() === transactionDate.getDay() && diffDays % 28 === 0) {
+                            nominalOccurrenceDate = selectedDayDate;
+                        }
+                        break;
+                    case 'monthly':
+                        const nominalDateForMonth = new Date(selectedDayDate.getFullYear(), selectedDayDate.getMonth(), transactionDate.getDate());
+                        if (nominalDateForMonth.getTime() >= transactionDate.getTime()) {
+                            nominalOccurrenceDate = nominalDateForMonth;
+                        }
+                        break;
+                }
+
+                if (nominalOccurrenceDate) {
+                    const effectiveDate = getNextWorkingDay(nominalOccurrenceDate);
+                    if (formatDate(effectiveDate) === dateString) {
+                        effectiveTransactions.push(t);
+                    }
+                }
+            });
+            return effectiveTransactions.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+
+        // --- Calendar Rendering ---
+        function renderCalendar() {
+            calendarDaysEl.innerHTML = '';
+            currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth); // 0 (Sun) - 6 (Sat)
+
+            const firstDayOfCurrentMonth = new Date(currentYear, currentMonth, 1);
+            const dayBeforeFirstDayOfCurrentMonth = new Date(firstDayOfCurrentMonth);
+            dayBeforeFirstDayOfCurrentMonth.setDate(firstDayOfCurrentMonth.getDate() - 1);
+
+            let currentMonthCumulativeBalance = calculateBalanceUpToDate(dayBeforeFirstDayOfCurrentMonth);
+
+            // Add blank days for the start of the month
+            for (let i = 0; i < firstDayIndex; i++) {
+                const blankDay = document.createElement('div');
+                blankDay.className = 'calendar-day inactive';
+                calendarDaysEl.appendChild(blankDay);
+            }
+
+            const today = new Date();
+            const todayFormatted = formatDate(today);
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const formattedDate = formatDate(date);
+
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                dayEl.dataset.date = formattedDate;
+
+                if (formattedDate === todayFormatted) {
+                    dayEl.classList.add('today');
+                }
+
+                dayEl.innerHTML = `<div class="calendar-day-number">${day}</div><div class="calendar-day-transactions"></div><div class="calendar-day-cumulative"></div>`;
+
+                const transactionsForDayEl = dayEl.querySelector('.calendar-day-transactions');
+                const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
+
+                let dailyNet = 0;
+                const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
+
+                transactionsOnThisDayForDisplay.forEach(t => {
+                    dailyNet += (t.type === 'income' ? t.amount : -t.amount);
+                });
+
+
+                // Display transactions in the day cell
+                if (transactionsOnThisDayForDisplay.length > 0) {
+                    transactionsOnThisDayForDisplay.forEach(t => {
+                        const p = document.createElement('p');
+                        p.textContent = `${t.type === 'income' ? '+' : '-'}£${t.amount.toFixed(2)} ${t.name}`;
+                        p.className = t.type === 'income' ? 'text-green-700' : 'text-red-700';
+                        transactionsForDayEl.appendChild(p);
+                    });
+                } else {
+                     const p = document.createElement('p');
+                     p.textContent = 'No entries';
+                     p.className = 'text-gray-400';
+                     transactionsForDayEl.appendChild(p);
+                }
+
+                currentMonthCumulativeBalance += dailyNet; // Update cumulative balance for the current day
+                cumulativeEl.textContent = `£${currentMonthCumulativeBalance.toFixed(2)}`;
+                if (currentMonthCumulativeBalance >= 0) {
+                    cumulativeEl.classList.add('positive');
+                    cumulativeEl.classList.remove('negative');
+                } else {
+                    cumulativeEl.classList.add('negative');
+                    cumulativeEl.classList.remove('positive');
+                }
+
+                dayEl.addEventListener('click', () => openAddTransactionModal(formattedDate));
+                calendarDaysEl.appendChild(dayEl);
+            }
+        }
+
+        // --- Add Transaction Modal Logic ---
+        function openAddTransactionModal(date) {
+            selectedDate = date;
+            addModalDateEl.textContent = new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            renderAddModalTransactions(date);
+            addTransactionModal.classList.add('show');
+        }
+
+        function closeAddModal() {
+            addTransactionModal.classList.remove('show');
+            // Clear form fields when closing
+            addTransactionTypeInput.value = 'expense';
+            addTransactionNameInput.value = '';
+            addTransactionAmountInput.value = '';
+            addTransactionRepeatInput.value = 'none';
+            selectedDate = null;
+            toggleAddRepeatOptions(); // Ensure repeat options are visible for next open
+            renderCalendar(); // Re-render calendar to reflect changes
+            renderOverview(); // Also re-render overview in case current day's transactions changed
+        }
+
+        // Toggle visibility of repeat options based on transaction type for Add Modal
+        function toggleAddRepeatOptions() {
+            if (addTransactionTypeInput.value === 'startingBalance') {
+                addTransactionRepeatGroup.classList.add('hidden');
+                addTransactionRepeatInput.value = 'none'; // Force 'none'
+            } else {
+                addTransactionRepeatGroup.classList.remove('hidden');
+            }
+        }
+
+        function renderAddModalTransactions(date) {
+            addModalTransactionList.innerHTML = '';
+            const transactionsOnSelectedDay = getTransactionsEffectiveOnDate(date);
+
+            if (transactionsOnSelectedDay.length === 0) {
+                noAddModalTransactionsMessage.classList.remove('hidden');
+            } else {
+                noAddModalTransactionsMessage.classList.add('hidden');
+                transactionsOnSelectedDay.forEach((t) => {
+                    const div = document.createElement('div');
+                    div.className = 'modal-transaction-item';
+                    const repeatText = t.repeat !== 'none' ? ` (Repeats ${t.repeat})` : '';
+                    const displayType = t.type === 'startingBalance' ? 'Starting Balance' : (t.type === 'income' ? '+' : '-');
+                    const displayAmount = t.type === 'startingBalance' ? `£${t.amount.toFixed(2)}` : `${displayType}£${t.amount.toFixed(2)}`;
+
+                    div.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${t.name}</p>
+                            <p class="text-sm text-gray-600">${displayAmount}${repeatText}</p>
+                        </div>
+                        <div>
+                            <button class="btn-edit" data-id="${t.id}" data-instance-date="${date}">Edit</button>
+                            <button class="btn-delete" data-id="${t.id}">Delete</button>
+                        </div>
+                    `;
+                    // Attach event listeners to the buttons
+                    div.querySelector('.btn-edit').addEventListener('click', (e) => {
+                        openEditTransactionModal(parseInt(e.target.dataset.id), e.target.dataset.instanceDate);
+                    });
+                    div.querySelector('.btn-delete').addEventListener('click', (e) => {
+                        const transactionIdToDelete = parseInt(e.target.dataset.id);
+                        transactions = transactions.filter(tx => tx.id !== transactionIdToDelete);
+                        localStorage.setItem('transactions', JSON.stringify(transactions));
+                        showMessage('Transaction deleted!');
+                        renderAddModalTransactions(selectedDate); // Re-render modal list
+                    });
+                    addModalTransactionList.appendChild(div);
+                });
+            }
+        }
+
+        // --- Edit Transaction Modal Logic ---
+        function openEditTransactionModal(transactionId, instanceDate) {
+            const originalTx = transactions.find(t => t.id === transactionId);
+            if (!originalTx) {
+                showMessage('Error: Transaction not found for editing.');
+                return;
+            }
+
+            editingTransactionId = transactionId;
+            editingTransactionInstanceDate = instanceDate; // The date of the specific instance being edited
+
+            editTransactionTypeInput.value = originalTx.type;
+            editTransactionNameInput.value = originalTx.name;
+            editTransactionAmountInput.value = originalTx.amount;
+            editTransactionRepeatInput.value = originalTx.repeat;
+
+            toggleEditRepeatOptions(); // Adjust repeat options visibility
+
+            addTransactionModal.classList.remove('show'); // Hide add modal
+            editTransactionModal.classList.add('show'); // Show edit modal
+        }
+
+        function closeEditModal() {
+            editTransactionModal.classList.remove('show');
+            editingTransactionId = null;
+            editingTransactionInstanceDate = null;
+            renderAddModalTransactions(selectedDate); // Re-render add modal list
+            addTransactionModal.classList.add('show'); // Show add modal again
+        }
+
+        // Toggle visibility of repeat options based on transaction type for Edit Modal
+        function toggleEditRepeatOptions() {
+            if (editTransactionTypeInput.value === 'startingBalance') {
+                editTransactionRepeatGroup.classList.add('hidden');
+                editTransactionRepeatInput.value = 'none'; // Force 'none'
+            } else {
+                editTransactionRepeatGroup.classList.remove('hidden');
+            }
+        }
+
+        // Event listener for transaction type change in Edit Modal
+        editTransactionTypeInput.addEventListener('change', toggleEditRepeatOptions);
+
+        // --- Overview Rendering ---
+        function renderOverview() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayFormatted = formatDate(today);
+
+            // 1. Today's transactions
+            overviewTodaysTransactionsListEl.innerHTML = '';
+            const todaysTransactions = getTransactionsEffectiveOnDate(todayFormatted);
+            if (todaysTransactions.length === 0) {
+                overviewTodaysTransactionsListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No transactions for today.</p>';
+            } else {
+                todaysTransactions.forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = 'overview-transaction-item';
+                    const displayType = t.type === 'startingBalance' ? 'Starting Balance' : (t.type === 'income' ? '+' : '-');
+                    const displayAmount = t.type === 'startingBalance' ? `£${t.amount.toFixed(2)}` : `${displayType}£${t.amount.toFixed(2)}`;
+                    div.innerHTML = `
+                        <span>${t.name}</span>
+                        <span class="${t.type === 'income' || t.type === 'startingBalance' ? 'text-green-700' : 'text-red-700'}">${displayAmount}</span>
+                    `;
+                    overviewTodaysTransactionsListEl.appendChild(div);
+                });
+            }
+
+            // 2. Current Balance
+            const currentBalance = calculateBalanceUpToDate(today);
+            overviewCurrentBalanceEl.textContent = `£${currentBalance.toFixed(2)}`;
+            overviewCurrentBalanceEl.classList.remove('positive', 'negative');
+            if (currentBalance >= 0) {
+                overviewCurrentBalanceEl.classList.add('positive');
+            } else {
+                overviewCurrentBalanceEl.classList.add('negative');
+            }
+
+            // 3. Days until next income transaction & 4. Lowest balance until next income
+            let nextIncomeDate = null;
+            let nextIncomeAmount = 0;
+            let lowestBalanceInPeriod = currentBalance; // Initialize with current balance
+
+            let searchDate = new Date(today);
+            searchDate.setDate(searchDate.getDate() + 1); // Start searching from tomorrow
+
+            const maxSearchDays = 365 * 2; // Limit search to 2 years to prevent infinite loops if no income
+            let daysSearched = 0;
+
+            while (!nextIncomeDate && daysSearched < maxSearchDays) {
+                const transactionsOnSearchDate = getTransactionsEffectiveOnDate(formatDate(searchDate));
+                let dailyNet = 0;
+                let incomeFoundToday = false;
+
+                transactionsOnSearchDate.forEach(t => {
+                    if (t.type === 'income' || t.type === 'startingBalance') { // Consider startingBalance as income for this purpose
+                        incomeFoundToday = true;
+                        nextIncomeAmount += t.amount; // Accumulate income for this day
+                    }
+                    dailyNet += (t.type === 'income' || t.type === 'startingBalance' ? t.amount : -t.amount);
+                });
+
+                // Calculate cumulative balance for the searchDate
+                const balanceAtSearchDate = calculateBalanceUpToDate(searchDate);
+                if (balanceAtSearchDate < lowestBalanceInPeriod) {
+                    lowestBalanceInPeriod = balanceAtSearchDate;
+                }
+
+                if (incomeFoundToday) {
+                    nextIncomeDate = searchDate;
+                } else {
+                    searchDate.setDate(searchDate.getDate() + 1);
+                    daysSearched++;
+                }
+            }
+
+            if (nextIncomeDate) {
+                const diffDays = Math.round((nextIncomeDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                overviewDaysUntilNextIncomeEl.textContent = diffDays;
+                overviewNextIncomeAmountEl.textContent = `£${nextIncomeAmount.toFixed(2)}`;
+                overviewNextIncomeDateEl.textContent = nextIncomeDate.toLocaleDateString('en-GB');
+            } else {
+                overviewDaysUntilNextIncomeEl.textContent = 'N/A';
+                overviewNextIncomeAmountEl.textContent = '£0.00';
+                overviewNextIncomeDateEl.textContent = 'No future income found within 2 years.';
+            }
+
+            overviewLowestBalanceEl.textContent = `£${lowestBalanceInPeriod.toFixed(2)}`;
+            overviewLowestBalanceEl.classList.remove('positive', 'negative');
+            if (lowestBalanceInPeriod >= 0) {
+                overviewLowestBalanceEl.classList.add('positive');
+            } else {
+                overviewLowestBalanceEl.classList.add('negative');
+            }
+        }
+
+
+        // --- Event Listeners ---
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        closeAddModalBtn.addEventListener('click', closeAddModal);
+        addTransactionModal.addEventListener('click', (e) => {
+            if (e.target === addTransactionModal) { // Close if clicked outside content
+                closeAddModal();
+            }
+        });
+
+        closeEditModalBtn.addEventListener('click', closeEditModal);
+        editTransactionModal.addEventListener('click', (e) => {
+            if (e.target === editTransactionModal) { // Close if clicked outside content
+                closeEditModal();
+            }
+        });
+
+        addTransactionTypeInput.addEventListener('change', toggleAddRepeatOptions);
+
+        addTransactionBtn.addEventListener('click', () => {
+            const type = addTransactionTypeInput.value;
+            const name = addTransactionNameInput.value.trim();
+            const amount = parseFloat(addTransactionAmountInput.value);
+            let repeat = addTransactionRepeatInput.value;
+
+            if (!name || isNaN(amount) || amount <= 0) {
+                showMessage('Please enter a valid name/source and a positive amount.');
+                return;
+            }
+
+            if (type === 'startingBalance') {
+                // Remove all existing startingBalance transactions to enforce "only one active"
+                transactions = transactions.filter(t => t.type !== 'startingBalance');
+                repeat = 'none'; // Force 'none' for starting balance
+            }
+
+            const newTransaction = {
+                id: Date.now(), // Unique ID for deletion
+                type,
+                name,
+                amount,
+                date: selectedDate, // Date of first occurrence
+                repeat,
+                endDate: null // Default to null for indefinite repetition
+            };
+
+            transactions.push(newTransaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            showMessage(type === 'startingBalance' ? 'Starting balance updated successfully!' : 'Transaction added successfully!');
+            renderAddModalTransactions(selectedDate); // Update modal list
+            // Clear form fields
+            addTransactionNameInput.value = '';
+            addTransactionAmountInput.value = '';
+            addTransactionRepeatInput.value = 'none';
+            toggleAddRepeatOptions();
+        });
+
+        saveEditedTransactionBtn.addEventListener('click', () => {
+            const newType = editTransactionTypeInput.value;
+            const newName = editTransactionNameInput.value.trim();
+            const newAmount = parseFloat(editTransactionAmountInput.value);
+            const newRepeat = editTransactionRepeatInput.value;
+            // The scope is now always "thisAndFuture"
+
+            if (!newName || isNaN(newAmount) || newAmount <= 0) {
+                showMessage('Please enter a valid name/source and a positive amount.');
+                return;
+            }
+
+            let originalTx = transactions.find(t => t.id === editingTransactionId);
+            if (!originalTx) {
+                showMessage('Error: Original transaction not found.');
+                return;
+            }
+
+            // Handle Starting Balance type change
+            if (newType === 'startingBalance') {
+                // If the original transaction was not a starting balance, and we're making it one:
+                // Remove all other starting balance transactions.
+                if (originalTx.type !== 'startingBalance') {
+                    transactions = transactions.filter(t => t.type !== 'startingBalance');
+                }
+                // Ensure repeat is 'none' for starting balance
+                originalTx.repeat = 'none';
+                originalTx.endDate = null; // Starting balance should not have an end date
+            } else if (originalTx.type === 'startingBalance' && newType !== 'startingBalance') {
+                // If original was starting balance and now it's not, ensure no other starting balance exists,
+                // or if it does, it's the one we're converting.
+                // This scenario is less common, but important for data integrity.
+                // For simplicity, if a starting balance is converted, it just becomes a regular transaction.
+                // The 'only one starting balance' rule applies when a *new* starting balance is added.
+            }
+
+            const originalTxStartDate = parseDate(originalTx.date);
+            const instanceDate = parseDate(editingTransactionInstanceDate);
+
+            // Logic for "This event and all future events"
+            if (originalTx.repeat === 'none' || originalTxStartDate.getTime() === instanceDate.getTime()) {
+                // If it's a non-repeating transaction, or editing the very first instance of a repeating one
+                originalTx.type = newType;
+                originalTx.name = newName;
+                originalTx.amount = newAmount;
+                originalTx.repeat = newRepeat;
+                originalTx.endDate = null; // If repeat is none, endDate remains null. If it's repeating, it repeats indefinitely from this point.
+                showMessage('Changes applied to this event and all future events.');
+            } else {
+                // Editing a future instance of a repeating transaction - split it
+                const newOriginalTxEndDate = new Date(instanceDate);
+                newOriginalTxEndDate.setDate(newOriginalTxEndDate.getDate() - 1); // End original one day before instance date
+                originalTx.endDate = formatDate(newOriginalTxEndDate);
+
+                const newRepeatingTx = {
+                    id: Date.now(),
+                    type: newType,
+                    name: newName,
+                    amount: newAmount,
+                    date: editingTransactionInstanceDate, // New repeating transaction starts from here
+                    repeat: newRepeat,
+                    endDate: null
+                };
+                transactions.push(newRepeatingTx);
+                showMessage('Changes applied to this event and all future events (transaction split).');
+            }
+
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            closeEditModal(); // Close edit modal, which will trigger re-render of add modal and calendar
+        });
+
+        // Tab switching logic
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and hide all content
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+                // Add active class to clicked button and show corresponding content
+                button.classList.add('active');
+                const targetTabId = button.dataset.tab + 'TabContent';
+                document.getElementById(targetTabId).classList.add('active');
+
+                // If switching to overview, render it
+                if (button.dataset.tab === 'overview') {
+                    renderOverview();
+                }
+            });
+        });
+
+
+        // Initial render on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCalendar();
+            toggleAddRepeatOptions(); // Set initial state for add modal repeat options
+            toggleEditRepeatOptions(); // Set initial state for edit modal repeat options
+            // Initially render the calendar tab
+            document.querySelector('.tab-button[data-tab="calendar"]').click();
+        });
+    </script>
+</body>
+</html>
