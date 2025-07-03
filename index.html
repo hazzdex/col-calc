@@ -573,20 +573,19 @@
         }
 
         .menu-toggle-btn {
-            display: none; /* Hidden by default, shown on mobile */
+            display: none; /* Hidden by default on desktop */
             background: none;
             border: none;
             color: #6366f1;
             cursor: pointer;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem; /* Reduced padding for a tighter button */
             border-radius: 0.5rem;
             transition: background-color 0.2s ease-in-out;
             /* Style for SVG icon */
-            display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px; /* Fixed width for icon */
-            height: 40px; /* Fixed height for icon */
+            width: 48px; /* Larger width for icon */
+            height: 48px; /* Larger height for icon */
         }
         .menu-toggle-btn:hover {
             background-color: #e0e7ff;
@@ -594,9 +593,16 @@
 
         /* Hamburger icon SVG styling */
         .menu-toggle-btn svg {
-            width: 24px; /* Adjust size of the SVG icon */
-            height: 24px;
+            width: 32px; /* Adjust size of the SVG icon */
+            height: 32px;
             fill: currentColor; /* Use button's text color for the icon */
+        }
+
+        /* Desktop: Tab buttons are always visible, hamburger is hidden */
+        .tab-buttons {
+            display: flex; /* Always flex on desktop */
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
         }
 
         @media (max-width: 767px) {
@@ -604,30 +610,38 @@
                 display: flex; /* Show menu button on mobile */
             }
             .tab-buttons {
-                display: none; /* Hide tab buttons by default on mobile */
+                display: none; /* Hide tab buttons on mobile */
+            }
+
+            /* Mobile Navigation Modal specific styles */
+            #mobileNavModal .modal-content {
+                width: 90%;
+                max-width: 400px; /* Slightly narrower for mobile menu */
+                padding: 1.5rem;
+            }
+            .mobile-nav-buttons {
+                display: flex;
                 flex-direction: column;
-                position: absolute;
-                top: 100%; /* Position below the header */
-                left: 0;
-                width: 100%;
-                background-color: #ffffff;
-                border-bottom: 2px solid #e2e8f0;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-                z-index: 50; /* Ensure it's above other content but below modals */
-                padding: 0.5rem 0;
+                gap: 0.75rem; /* Space between buttons */
             }
-            .tab-buttons.active {
-                display: flex; /* Show tab buttons when active */
+            .mobile-nav-button {
+                background-color: #e0e7ff; /* Light indigo background for buttons (indigo-100) */
+                color: #6366f1; /* Dark purple text (from btn-primary) */
+                padding: 1rem 1.25rem;
+                border-radius: 0.75rem;
+                font-size: 1.1rem;
+                font-weight: 600;
+                text-align: center;
+                transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             }
-            .tab-button {
-                width: 100%;
-                text-align: left;
-                padding: 0.75rem 1.5rem;
-                border-bottom: none; /* Remove individual button borders */
+            .mobile-nav-button:hover {
+                background-color: #c7d2fe; /* Darker light indigo on hover (indigo-200) */
+                transform: translateY(-1px);
             }
-            .tab-button.active {
-                border-color: transparent; /* No bottom border when active in mobile menu */
-                background-color: #eff6ff; /* Highlight active tab in menu */
+            .mobile-nav-button.active {
+                background-color: #6366f1; /* Indigo for active button */
+                color: white;
             }
         }
     </style>
@@ -644,15 +658,14 @@
             </button>
         </div>
 
-        <!-- Tab Buttons Container -->
-        <div id="navMenuContainer" class="relative">
-            <div class="tab-buttons">
-                <button class="tab-button" data-tab="getting-started">Getting Started</button>
-                <button class="tab-button active" data-tab="overview">Overview</button>
-                <button class="tab-button" data-tab="calendar">Calendar</button>
-                <button class="tab-button" data-tab="pay-estimator">Pay Estimator</button>
-                <button class="tab-button" data-tab="universal-credit">UC Estimator</button>
-            </div>
+        <!-- Tab Buttons Container (Desktop Only) -->
+        <!-- This div now only contains the desktop tab buttons and is hidden on mobile via CSS -->
+        <div class="tab-buttons" id="desktopTabButtons">
+            <button class="tab-button" data-tab="getting-started">Getting Started</button>
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="calendar">Calendar</button>
+            <button class="tab-button" data-tab="pay-estimator">Pay Estimator</button>
+            <button class="tab-button" data-tab="universal-credit">UC Estimator</button>
         </div>
 
         <!-- Getting Started Tab Content (New Tab) -->
@@ -1048,6 +1061,20 @@
         </div>
     </div>
 
+    <!-- Mobile Navigation Modal (New) -->
+    <div id="mobileNavModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeMobileNavModalBtn">&times;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Menu</h2> <!-- Changed title to "Menu" -->
+            <div class="mobile-nav-buttons">
+                <button class="mobile-nav-button" data-tab="getting-started">Getting Started</button>
+                <button class="mobile-nav-button" data-tab="overview">Overview</button>
+                <button class="mobile-nav-button" data-tab="calendar">Calendar</button>
+                <button class="mobile-nav-button" data-tab="pay-estimator">Pay Estimator</button>
+                <button class="mobile-nav-button" data-tab="universal-credit">UC Estimator</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Message Box for notifications -->
     <div id="messageBox" class="message-box"></div>
@@ -1102,7 +1129,7 @@
         let currentDailyDate = new Date(); // Tracks the date for daily view
 
         // Tab Elements
-        const tabButtons = document.querySelectorAll('.tab-button');
+        const desktopTabButtons = document.querySelectorAll('#desktopTabButtons .tab-button'); // Select desktop tab buttons
         const gettingStartedTabContent = document.getElementById('getting-startedTabContent'); // New tab content
         const calendarTabContent = document.getElementById('calendarTabContent');
         const overviewTabContent = document.getElementById('overviewTabContent');
@@ -1204,7 +1231,11 @@
 
         const calendarViewToggle = document.getElementById('calendarViewToggle'); // New toggle switch element
         const menuToggleBtn = document.getElementById('menuToggleBtn'); // New menu toggle button
-        const tabButtonsContainer = document.querySelector('.tab-buttons'); // Select the actual tab buttons container
+
+        // Mobile Nav Modal Elements (New)
+        const mobileNavModal = document.getElementById('mobileNavModal');
+        const closeMobileNavModalBtn = document.getElementById('closeMobileNavModalBtn');
+        const mobileNavButtons = document.querySelectorAll('#mobileNavModal .mobile-nav-button'); // Select buttons inside mobile nav modal
 
 
         let selectedDate = null; // Date of the day clicked on the calendar
@@ -2587,74 +2618,78 @@
             closeEditModal(); // Close edit modal, which will trigger re-render of add modal and calendar
         });
 
-        // Tab switching logic
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Close mobile menu if open
-                tabButtonsContainer.classList.remove('active'); // Correctly target the tab buttons container
+        // Function to handle tab switching logic (used by both desktop and mobile nav)
+        function switchTab(tabName) {
+            // Remove active class from all desktop tab buttons and hide all content
+            desktopTabButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-                // Remove active class from all buttons and hide all content
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            // Add active class to the corresponding desktop button (if it exists)
+            const targetDesktopButton = document.querySelector(`#desktopTabButtons .tab-button[data-tab="${tabName}"]`);
+            if (targetDesktopButton) {
+                targetDesktopButton.classList.add('active');
+            }
+            
+            // Show corresponding content
+            const targetTabContent = document.getElementById(tabName + 'TabContent');
+            if (targetTabContent) {
+                targetTabContent.classList.add('active');
+            }
 
-                // Add active class to clicked button and show corresponding content
-                button.classList.add('active');
-                const targetTabId = button.dataset.tab + 'TabContent';
-                document.getElementById(targetTabId).classList.add('active');
-
-                // If switching to overview, render it
-                if (button.dataset.tab === 'overview') {
-                    renderOverview();
-                } else if (button.dataset.tab === 'calendar') {
-                    // When switching to calendar, ensure the correct view is rendered
-                    updateCalendarView();
-                } else if (button.dataset.tab === 'pay-estimator') {
-                    updateContractedUnitsLabel(); // Initialize label for pay estimator
-                    payEstimatorResultsDiv.classList.add('hidden'); // Hide results initially
-                } else if (button.dataset.tab === 'universal-credit') {
-                    // Initialize UC tab visibility for age groups
-                    const currentClaimStatus = document.querySelector('input[name="ucClaimStatus"]:checked').value;
-                    if (currentClaimStatus === 'single') {
-                        ucAgeGroupSingleDiv.classList.remove('hidden');
-                        ucAgeGroupCoupleDiv.classList.add('hidden');
-                    } else {
-                        ucAgeGroupSingleDiv.classList.add('hidden');
-                        ucAgeGroupCoupleDiv.classList.remove('hidden');
-                    }
-                    ucCalculatorResultsDiv.classList.add('hidden'); // Hide results initially
+            // Perform tab-specific rendering/initialization
+            if (tabName === 'overview') {
+                renderOverview();
+            } else if (tabName === 'calendar') {
+                updateCalendarView();
+            } else if (tabName === 'pay-estimator') {
+                updateContractedUnitsLabel();
+                payEstimatorResultsDiv.classList.add('hidden');
+            } else if (tabName === 'universal-credit') {
+                const currentClaimStatus = document.querySelector('input[name="ucClaimStatus"]:checked').value;
+                if (currentClaimStatus === 'single') {
+                    ucAgeGroupSingleDiv.classList.remove('hidden');
+                    ucAgeGroupCoupleDiv.classList.add('hidden');
+                } else {
+                    ucAgeGroupSingleDiv.classList.add('hidden');
+                    ucAgeGroupCoupleDiv.classList.remove('hidden');
                 }
+                ucCalculatorResultsDiv.classList.add('hidden');
+            }
+        }
+
+        // Desktop tab switching logic
+        desktopTabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                switchTab(button.dataset.tab);
             });
         });
 
-        // Toggle mobile menu visibility
+        // Mobile menu toggle button
         menuToggleBtn.addEventListener('click', () => {
-            tabButtonsContainer.classList.toggle('active'); // Correctly toggle the active class on the tab buttons container
+            openModal(mobileNavModal);
         });
 
-        // Close mobile menu if clicked outside (on desktop, this won't apply as menu is always visible)
-        document.addEventListener('click', (e) => {
-            if (isMobileView() && tabButtonsContainer.classList.contains('active') && // Check tabButtonsContainer
-                !tabButtonsContainer.contains(e.target) && !menuToggleBtn.contains(e.target)) {
-                tabButtonsContainer.classList.remove('active');
+        // Close mobile nav modal button
+        closeMobileNavModalBtn.addEventListener('click', () => closeModal(mobileNavModal));
+        mobileNavModal.addEventListener('click', (e) => {
+            if (e.target === mobileNavModal) { // Close if clicked outside content
+                closeModal(mobileNavModal);
             }
+        });
+
+        // Mobile nav buttons inside the modal
+        mobileNavButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                switchTab(button.dataset.tab);
+                closeModal(mobileNavModal); // Close the modal after selecting a tab
+            });
         });
 
 
         // Initial render on page load
         document.addEventListener('DOMContentLoaded', () => {
             // Set Overview as the default active tab
-            const overviewButton = document.querySelector('.tab-button[data-tab="overview"]');
-            const overviewContent = document.getElementById('overviewTabContent');
-            
-            // Deactivate all tabs first
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            // Activate Overview tab
-            overviewButton.classList.add('active');
-            overviewContent.classList.add('active');
-
-            renderOverview(); // Render overview content
+            switchTab('overview');
             // Only render monthly calendar initially, daily view will be rendered on toggle
             renderCalendar(); 
         });
