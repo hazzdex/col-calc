@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Financial Tracker</title>
+    <title>The Cost of Living Calculator</title>
 
     <!-- Favicon for browsers -->
-    <link rel="icon" type="image/png" href="/icon-small.png">
-    <link rel="shortcut icon" type="image/png" href="https://img.icons8.com/ios-filled/50/FFFFFF/money-bag.png">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/50/FFFFFF/money-bag.png">
+    <link rel="shortcut icon" type="image/png" href="https://img.icons8.com/ios-filled/100/FFFFFF/money-bag.png">
 
     <!-- Apple Touch Icon and Web App Meta Tags for iOS Home Screen -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Money">
+    <meta name="apple-mobile-web-app-title" content="CoL Calc">
     <!-- Explicitly specify size for apple-touch-icon -->
     <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/100/FFFFFF/money-bag.png">
     
@@ -24,6 +24,8 @@
             font-family: 'Inter', sans-serif;
             background-color: #f0f4f8; /* Light blue-gray background */
             color: #334155; /* Darker text color */
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+            overflow-y: scroll; /* Always show vertical scrollbar to prevent layout shifts */
         }
         /* New style to prevent body scrolling when modal is open */
         body.modal-open {
@@ -169,11 +171,23 @@
             margin-bottom: 1rem;
             padding: 0.5rem 0;
         }
-        .calendar-grid {
+        /* New classes for calendar grid elements to allow for distinct styling and zooming */
+        .calendar-grid-header-row,
+        .calendar-grid-days {
             display: grid;
-            grid-template-columns: repeat(7, minmax(80px, 1fr)); /* Adjusted for minimum width */
+            grid-template-columns: repeat(7, minmax(80px, 1fr));
             gap: 0.5rem;
         }
+        .calendar-grid-header-row {
+            margin-bottom: 0.5rem; /* Space between headers and days */
+        }
+
+        /* Wrapper for zoomable content */
+        #calendarContentWrapper {
+            transform-origin: top left; /* Scale from top left corner */
+            transition: transform 0.2s ease-in-out; /* Smooth transition for zoom */
+        }
+
         .calendar-day-header {
             text-align: center;
             font-weight: 600;
@@ -298,13 +312,6 @@
             padding: 0.75rem;
             margin-top: 1rem;
         }
-        .modal-transaction-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px dashed #e2e8f0;
-        }
         .modal-transaction-item:last-child {
             border-bottom: none;
         }
@@ -339,6 +346,9 @@
         }
         .tab-content {
             display: none;
+            width: 100%; /* Ensure it takes full available width */
+            box-sizing: border-box; /* Include padding/border in width */
+            overflow-x: hidden; /* Prevent horizontal scroll within the tab content */
         }
         .tab-content.active {
             display: block;
@@ -382,16 +392,148 @@
         .overview-transaction-item:last-child {
             border-bottom: none;
         }
+
+        /* Pay Estimator specific styles */
+        .pay-estimator-result, .uc-calculator-result {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+        .pay-estimator-result p, .uc-calculator-result p {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+        .pay-estimator-result .label, .uc-calculator-result .label {
+            font-weight: 500;
+            color: #475569;
+        }
+        .pay-estimator-result .value, .uc-calculator-result .value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .pay-estimator-result .net-pay, .uc-calculator-result .net-payment {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #065f46; /* Green for net pay */
+            margin-top: 1rem;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 1rem;
+        }
+
+        /* Universal Credit specific styles */
+        .uc-input-group {
+            margin-bottom: 1rem;
+        }
+        .uc-input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #475569;
+        }
+        .uc-input-group input[type="number"],
+        .uc-input-group select {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .uc-input-group input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+        .uc-input-group .radio-option {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 1rem;
+        }
+        .uc-input-group .with-button {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .uc-input-group .with-button input {
+            flex-grow: 1;
+        }
+        .uc-input-group .import-btn {
+            background-color: #4f46e5; /* Darker indigo for import button */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem; /* text-sm */
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .uc-input-group .import-btn:hover {
+            background-color: #3730a3; /* Even darker indigo on hover */
+            transform: translateY(-1px);
+        }
+
+        .uc-calculator-result .negative {
+            color: #991b1b;
+        }
+        /* Getting Started specific styles */
+        .getting-started-section {
+            background-color: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .getting-started-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+        }
+        .getting-started-section p {
+            font-size: 0.95rem;
+            color: #475569;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="section-title">Personal Financial Tracker</h1>
+        <h1 class="section-title">The Cost of Living Calculator</h1>
 
         <!-- Tab Buttons -->
         <div class="tab-buttons">
+            <button class="tab-button" data-tab="getting-started">Getting Started</button>
             <button class="tab-button active" data-tab="overview">Overview</button>
             <button class="tab-button" data-tab="calendar">Calendar</button>
+            <button class="tab-button" data-tab="pay-estimator">Pay Estimator</button>
+            <button class="tab-button" data-tab="universal-credit">UC Estimator</button>
+        </div>
+
+        <!-- Getting Started Tab Content (New Tab) -->
+        <div id="getting-startedTabContent" class="tab-content">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Welcome to The Cost of Living Calculator!</h2>
+            <p class="text-gray-600 mb-6">This tool helps you manage your finances by tracking income and expenses, estimating future cash flow, and calculating potential earnings and benefits. Here's a quick guide to help you get started and make the most of the app:</p>
+
+            <div class="getting-started-section">
+                <h3>1. Update Your Balance (Overview Tab)</h3>
+                <p>First, navigate to the **Overview** tab. Here, you'll find a section to "Update Balance". Enter your current bank balance to ensure all future calculations are accurate. This sets your starting point for understanding your cash flow.</p>
+            </div>
+
+            <div class="getting-started-section">
+                <h3>2. Enter Your Regular Income and Outgoings (Calendar Tab)</h3>
+                <p>Next, switch to the **Calendar** tab. Click on any day to add your regular income (like salary or benefits) and recurring expenses (like rent, bills, or subscriptions). You can set these transactions to repeat daily, weekly, bi-weekly, four-weekly, or monthly. By doing this, the calendar will automatically project your future balance, showing you exactly where your money is expected to go and when.</p>
+            </div>
+
+            <div class="getting-started-section">
+                <h3>3. Estimate Your Pay (Pay Estimator Tab)</h3>
+                <p>If you want to understand your take-home pay, visit the **Pay Estimator** tab. Input your pay rate (hourly, daily, weekly, monthly, or annually) and frequency. The calculator will provide a breakdown of your estimated gross pay, National Insurance, and Income Tax deductions, giving you your net pay. You can then easily add this estimated net pay as an income transaction to your Calendar.</p>
+            </div>
+
+            <div class="getting-started-section">
+                <h3>4. Estimate Your Universal Credit (UC Estimator Tab)</h3>
+                <p>For a simplified estimate of your potential Universal Credit payment, go to the **UC Estimator** tab. Enter details about your household, children, disability status, monthly rent, and importantly, your monthly net earnings. You can quickly import your estimated net earnings directly from the Pay Estimator. The calculated UC payment can then be added to your Calendar to see its impact on your overall finances.</p>
+            </div>
+
+            <p class="text-gray-600 mt-6">By following these steps, you'll gain a clear picture of your financial situation, helping you plan and manage your money effectively!</p>
         </div>
 
         <!-- Overview Tab Content -->
@@ -400,12 +542,14 @@
                 <div class="overview-card flex flex-col items-center justify-center">
                     <h3 class="text-center">Current Balance</h3>
                     <p class="text-3xl font-bold"><span id="overviewCurrentBalance" class="value">£0.00</span></p>
-                    <button id="addTodayTransactionBtn" class="btn-primary px-3 py-1 text-sm mt-4">Add Transaction</button>
+                    <button id="updateBalanceBtn" class="btn-primary px-3 py-1 text-sm mt-4">Update Balance</button>
                 </div>
                 <div class="overview-card">
                     <h3>Amount Available for Spending</h3>
-                    <p class="text-3xl font-bold"><span id="overviewLowestBalance" class="value">£0.00</span></p>
-                    <p class="text-sm text-gray-600">This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.</p>
+                    <p id="overviewLowestBalance" class="text-3xl font-bold">
+                        <span class="value">£0.00</span>
+                    </p>
+                    <p class="text-sm text-gray-600" id="lowestBalanceDescription">This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.</p>
                 </div>
                 <div class="overview-card md:col-span-2">
                     <h3>Upcoming Payment</h3>
@@ -422,7 +566,7 @@
 
         <!-- Calendar Tab Content -->
         <div id="calendarTabContent" class="tab-content">
-            <!-- Calendar Header (Month/Year and Nav Buttons) - outside the scrolling area -->
+            <!-- Calendar Header (Month/Year and Nav Buttons) -->
             <div class="calendar-header mb-4 p-2">
                 <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start">&lt; Prev</button>
                 <h2 id="currentMonthYear" class="text-2xl font-semibold text-gray-800 text-center"></h2>
@@ -430,17 +574,164 @@
             </div>
             <!-- Calendar Grid Container (with horizontal scrolling) -->
             <div class="mb-8 p-4 md:p-6 bg-gray-50 rounded-xl shadow-inner overflow-x-auto">
-                <div class="calendar-grid">
-                    <div class="calendar-day-header">Sun</div>
-                    <div class="calendar-day-header">Mon</div>
-                    <div class="calendar-day-header">Tue</div>
-                    <div class="calendar-day-header">Wed</div>
-                    <div class="calendar-day-header">Thu</div>
-                    <div class="calendar-day-header">Fri</div>
-                    <div class="calendar-day-header">Sat</div>
-                    <!-- Calendar days will be generated here -->
+                <div id="calendarContentWrapper">
+                    <div class="calendar-grid-header-row">
+                        <div class="calendar-day-header">Sun</div>
+                        <div class="calendar-day-header">Mon</div>
+                        <div class="calendar-day-header">Tue</div>
+                        <div class="calendar-day-header">Wed</div>
+                        <div class="calendar-day-header">Thu</div>
+                        <div class="calendar-day-header">Fri</div>
+                        <div class="calendar-day-header">Sat</div>
+                    </div>
+                    <div id="calendarDays" class="calendar-grid-days"></div>
                 </div>
-                <div id="calendarDays" class="calendar-grid mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Pay Estimator Tab Content -->
+        <div id="pay-estimatorTabContent" class="tab-content">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Pay Estimator</h2>
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="input-group">
+                        <label for="payRateAmount" class="block text-sm mb-1">Rate Amount (£):</label>
+                        <input type="number" id="payRateAmount" placeholder="e.g., 15.00" step="0.01" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="payRateUnit" class="block text-sm mb-1">Rate Unit:</label>
+                        <select id="payRateUnit" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="hourly">Hourly</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="annually">Annually</option>
+                            <option value="project">Per Project</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="contractedUnitsGroup">
+                        <label for="contractedUnits" class="block text-sm mb-1" id="contractedUnitsLabel">Hours per Week:</label>
+                        <input type="number" id="contractedUnits" placeholder="e.g., 40" step="0.1" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="input-group">
+                        <label for="payFrequency" class="block text-sm mb-1">Pay Frequency:</label>
+                        <select id="payFrequency" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="weekly">Weekly</option>
+                            <option value="bi-weekly">Bi-weekly</option>
+                            <option value="four-weekly">Four Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="annually">Annually</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="calculatePayBtn" class="btn-primary w-full">Calculate Pay</button>
+            </div>
+
+            <div id="payEstimatorResults" class="pay-estimator-result hidden">
+                <p><span class="label">Gross Pay:</span> <span id="grossPayResult" class="value">£0.00</span></p>
+                <p><span class="label">National Insurance:</span> <span id="niDeductionResult" class="value">£0.00</span></p>
+                <p><span class="label">Income Tax:</span> <span id="taxDeductionResult" class="value">£0.00</span></p>
+                <p class="net-pay"><span class="label">Net Pay:</span> <span id="netPayResult" class="value">£0.00</span></p>
+                <button id="addEstimatedPayToCalendarBtn" class="btn-primary w-full mt-4">Add Net Pay to Calendar</button>
+            </div>
+        </div>
+
+        <!-- Universal Credit Tab Content (New Tab) -->
+        <div id="universal-creditTabContent" class="tab-content">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Universal Credit Estimator</h2>
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner mb-6">
+                <p class="text-sm text-gray-600 mb-4">This is a simplified estimator based on UK 2024/2025 Universal Credit rates. It does not account for all complex rules, deductions, or other benefits.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="uc-input-group md:col-span-2">
+                        <label class="block text-sm mb-1">Are you claiming as a single person or a couple?</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="radio-option">
+                                <input type="radio" name="ucClaimStatus" value="single" checked> Single
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="ucClaimStatus" value="couple"> Couple
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="uc-input-group" id="ucAgeGroupSingle">
+                        <label class="block text-sm mb-1">Your Age Group:</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="radio-option">
+                                <input type="radio" name="ucAge" value="under25" checked> Under 25
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="ucAge" value="25over"> 25 or Over
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="uc-input-group hidden" id="ucAgeGroupCouple">
+                        <label class="block text-sm mb-1">Age Group (Person 1):</label>
+                        <div class="flex flex-wrap gap-4 mb-2">
+                            <label class="radio-option">
+                                <input type="radio" name="ucAgeP1" value="under25" checked> Under 25
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="ucAgeP1" value="25over"> 25 or Over
+                            </label>
+                        </div>
+                        <label class="block text-sm mb-1">Age Group (Person 2):</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="radio-option">
+                                <input type="radio" name="ucAgeP2" value="under25" checked> Under 25
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="ucAgeP2" value="25over"> 25 or Over
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="uc-input-group">
+                        <label for="ucNumChildren" class="block text-sm mb-1">Number of Children:</label>
+                        <input type="number" id="ucNumChildren" value="0" min="0" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="uc-input-group">
+                        <label for="ucChildBornBefore2017" class="block text-sm mb-1">Is at least one child born before 6 April 2017?</label>
+                        <input type="checkbox" id="ucChildBornBefore2017" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="text-xs text-gray-500 ml-2">(If checked, the higher child element will apply to one child born before this date, and the standard rate to any other children.)</span>
+                    </div>
+
+                    <div class="uc-input-group">
+                        <label for="ucMonthlyRent" class="block text-sm mb-1">Monthly Rent (£):</label>
+                        <input type="number" id="ucMonthlyRent" value="0.00" step="0.01" min="0" class="focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+
+                    <div class="uc-input-group">
+                        <label for="ucDisabilityStatus" class="block text-sm mb-1">Disability Status:</label>
+                        <select id="ucDisabilityStatus" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="none">None</option>
+                            <option value="lcw">Limited Capability for Work (LCW)</option>
+                            <option value="lcwra">Limited Capability for Work & Work-Related Activity (LCWRA)</option>
+                        </select>
+                    </div>
+
+                    <div class="uc-input-group md:col-span-2">
+                        <label for="ucMonthlyEarnings" class="block text-sm mb-1">Monthly Net Earnings (after tax/NI) (£):</label>
+                        <div class="with-button">
+                            <input type="number" id="ucMonthlyEarnings" value="0.00" step="0.01" min="0" class="focus:ring-indigo-500 focus:border-indigo-500">
+                            <button id="importPayEstimatorEarningsBtn" class="import-btn">Import from Pay Estimator</button>
+                        </div>
+                    </div>
+                </div>
+                <button id="calculateUCBtn" class="btn-primary w-full">Calculate Universal Credit</button>
+            </div>
+
+            <div id="ucCalculatorResults" class="uc-calculator-result hidden">
+                <p><span class="label">Standard Allowance:</span> <span id="ucStandardAllowance" class="value">£0.00</span></p>
+                <p><span class="label">Child Elements:</span> <span id="ucChildElements" class="value">£0.00</span></p>
+                <p><span class="label">Disability Element:</span> <span id="ucDisabilityElement" class="value">£0.00</span></p>
+                <p><span class="label">Housing Element:</span> <span id="ucHousingElement" class="value">£0.00</span></p>
+                <p><span class="label">Total Elements:</span> <span id="ucTotalElements" class="value">£0.00</span></p>
+                <p class="mt-4"><span class="label">Work Allowance Applied:</span> <span id="ucWorkAllowance" class="value">£0.00</span></p>
+                <p><span class="label">Earnings Deduction:</span> <span id="ucEarningsDeduction" class="value">£0.00</span></p>
+                <p class="net-payment"><span class="label">Estimated Monthly UC:</span> <span id="ucNetPayment" class="value">£0.00</span></p>
+                <button id="addEstimatedUCtoCalendarBtn" class="btn-primary w-full mt-4">Add Estimated UC to Calendar</button>
             </div>
         </div>
     </div>
@@ -468,7 +759,6 @@
                         <select id="addTransactionType" class="focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="expense">Expense</option>
                             <option value="income">Income</option>
-                            <option value="startingBalance">Starting Balance</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -509,7 +799,6 @@
                         <select id="editTransactionType" class="focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="expense">Expense</option>
                             <option value="income">Income</option>
-                            <option value="startingBalance">Starting Balance</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -538,6 +827,69 @@
         </div>
     </div>
 
+    <!-- Update Balance Modal -->
+    <div id="updateBalanceModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeUpdateBalanceModalBtn">&times;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Update Current Balance</h2>
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
+                <div class="input-group mb-4">
+                    <label for="newBalanceAmount" class="block text-sm mb-1">Your Current Bank Balance (£):</label>
+                    <input type="number" id="newBalanceAmount" placeholder="e.g., 1500.00" step="0.01" class="focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button id="saveBalanceBtn" class="btn-primary w-full">Save Balance</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Pay Add Modal (New Modal) -->
+    <div id="confirmPayAddModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeConfirmPayAddModalBtn">&times;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add Estimated Pay to Calendar</h2>
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
+                <p class="mb-4 text-lg">Estimated Net Pay: <span id="modalEstimatedNetPay" class="font-bold text-green-700">£0.00</span></p>
+                <div class="input-group mb-4">
+                    <label for="nextPayDateInput" class="block text-sm mb-1">Next Pay Day:</label>
+                    <input type="date" id="nextPayDateInput" class="focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="input-group mb-4">
+                    <label for="confirmPayFrequencySelect" class="block text-sm mb-1">Repeat Frequency:</label>
+                    <select id="confirmPayFrequencySelect" class="focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="weekly">Weekly</option>
+                        <option value="bi-weekly">Bi-weekly</option>
+                        <option value="four-weekly">Four Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="annually">Annually</option>
+                    </select>
+                </div>
+                <button id="confirmAddPayBtn" class="btn-primary w-full">Confirm Add to Calendar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm UC Add Modal (New Modal) -->
+    <div id="confirmUcAddModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeConfirmUcAddModalBtn">&times;</button>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Add Estimated UC to Calendar</h2>
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
+                <p class="mb-4 text-lg">Estimated Monthly UC: <span id="modalEstimatedUcPayment" class="font-bold text-green-700">£0.00</span></p>
+                <div class="input-group mb-4">
+                    <label for="nextUcPayDateInput" class="block text-sm mb-1">Next UC Payment Day:</label>
+                    <input type="date" id="nextUcPayDateInput" class="focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="input-group mb-4">
+                    <label for="confirmUcFrequencySelect" class="block text-sm mb-1">Repeat Frequency:</label>
+                    <select id="confirmUcFrequencySelect" class="focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <button id="confirmAddUcBtn" class="btn-primary w-full">Confirm Add to Calendar</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Message Box for notifications -->
     <div id="messageBox" class="message-box"></div>
@@ -556,6 +908,7 @@
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
         let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let balanceUpdates = JSON.parse(localStorage.getItem('balanceUpdates')) || []; // New storage for balance updates
 
         // UK Bank Holidays (YYYY-MM-DD format) - Manually maintained
         // This list should be updated for future years for full accuracy.
@@ -580,14 +933,29 @@
         ].map(d => formatDate(new Date(d))); // Ensure consistent formatting
 
         const calendarDaysEl = document.getElementById('calendarDays');
+        const calendarContentWrapper = document.getElementById('calendarContentWrapper'); // New wrapper for zoomable content
         const currentMonthYearEl = document.getElementById('currentMonthYear');
         const prevMonthBtn = document.getElementById('prevMonthBtn');
         const nextMonthBtn = document.getElementById('nextMonthBtn');
 
+        // Zoom variables
+        let currentZoomLevel = 1.0;
+        const zoomStep = 0.1;
+        const minZoom = 0.5;
+        const maxZoom = 2.0;
+
+        // Variables for touch zoom
+        let initialPinchDistance = null;
+        let isPinching = false;
+
+
         // Tab Elements
         const tabButtons = document.querySelectorAll('.tab-button');
+        const gettingStartedTabContent = document.getElementById('getting-startedTabContent'); // New tab content
         const calendarTabContent = document.getElementById('calendarTabContent');
         const overviewTabContent = document.getElementById('overviewTabContent');
+        const payEstimatorTabContent = document.getElementById('pay-estimatorTabContent');
+        const universalCreditTabContent = document.getElementById('universal-creditTabContent'); // New UC tab
 
         // Add Transaction Modal Elements
         const addTransactionModal = document.getElementById('addTransactionModal');
@@ -614,15 +982,82 @@
 
         // Overview Elements
         const overviewCurrentBalanceEl = document.getElementById('overviewCurrentBalance');
-        const overviewNextIncomeStatementEl = document.getElementById('overviewNextIncomeStatement'); // New element
+        const overviewNextIncomeStatementEl = document.getElementById('overviewNextIncomeStatement');
         const overviewLowestBalanceEl = document.getElementById('overviewLowestBalance');
+        const lowestBalanceDescriptionEl = document.getElementById('lowestBalanceDescription');
         const overviewTodaysTransactionsListEl = document.getElementById('overviewTodaysTransactionsList');
-        const addTodayTransactionBtn = document.getElementById('addTodayTransactionBtn'); // New button element
+        const updateBalanceBtn = document.getElementById('updateBalanceBtn');
 
+        // Update Balance Modal Elements
+        const updateBalanceModal = document.getElementById('updateBalanceModal');
+        const closeUpdateBalanceModalBtn = document.getElementById('closeUpdateBalanceModalBtn');
+        const newBalanceAmountInput = document.getElementById('newBalanceAmount');
+        const saveBalanceBtn = document.getElementById('saveBalanceBtn');
+
+        // Pay Estimator Elements
+        const payRateAmountInput = document.getElementById('payRateAmount');
+        const payRateUnitSelect = document.getElementById('payRateUnit');
+        const contractedUnitsGroup = document.getElementById('contractedUnitsGroup');
+        const contractedUnitsLabel = document.getElementById('contractedUnitsLabel');
+        const contractedUnitsInput = document.getElementById('contractedUnits');
+        const payFrequencySelect = document.getElementById('payFrequency');
+        const calculatePayBtn = document.getElementById('calculatePayBtn');
+        const payEstimatorResultsDiv = document.getElementById('payEstimatorResults');
+        const grossPayResultSpan = document.getElementById('grossPayResult');
+        const niDeductionResultSpan = document.getElementById('niDeductionResult');
+        const taxDeductionResultSpan = document.getElementById('taxDeductionResult');
+        const netPayResultSpan = document.getElementById('netPayResult');
+        const addEstimatedPayToCalendarBtn = document.getElementById('addEstimatedPayToCalendarBtn');
+
+        // Confirm Pay Add Modal Elements
+        const confirmPayAddModal = document.getElementById('confirmPayAddModal');
+        const closeConfirmPayAddModalBtn = document = document.getElementById('closeConfirmPayAddModalBtn');
+        const modalEstimatedNetPaySpan = document.getElementById('modalEstimatedNetPay');
+        const nextPayDateInput = document.getElementById('nextPayDateInput');
+        const confirmPayFrequencySelect = document.getElementById('confirmPayFrequencySelect');
+        const confirmAddPayBtn = document.getElementById('addEstimatedPayToCalendarBtn'); // This was already defined, reuse it
+
+        // Universal Credit Elements (New)
+        const ucClaimStatusRadios = document.querySelectorAll('input[name="ucClaimStatus"]');
+        const ucAgeGroupSingleDiv = document.getElementById('ucAgeGroupSingle');
+        const ucAgeGroupCoupleDiv = document.getElementById('ucAgeGroupCouple');
+        const ucAgeRadios = document.querySelectorAll('input[name="ucAge"]'); // For single claim
+        const ucAgeP1Radios = document.querySelectorAll('input[name="ucAgeP1"]'); // For couple claim, person 1
+        const ucAgeP2Radios = document.querySelectorAll('input[name="ucAgeP2"]'); // For couple claim, person 2
+        const ucNumChildrenInput = document.getElementById('ucNumChildren');
+        const ucChildBornBefore2017Checkbox = document.getElementById('ucChildBornBefore2017');
+        const ucDisabilityStatusSelect = document.getElementById('ucDisabilityStatus');
+        const ucMonthlyRentInput = document.getElementById('ucMonthlyRent');
+        const ucMonthlyEarningsInput = document.getElementById('ucMonthlyEarnings');
+        const calculateUCBtn = document.getElementById('calculateUCBtn');
+        const ucCalculatorResultsDiv = document.getElementById('ucCalculatorResults');
+        const ucStandardAllowanceSpan = document.getElementById('ucStandardAllowance');
+        const ucChildElementsSpan = document.getElementById('ucChildElements');
+        const ucDisabilityElementSpan = document.getElementById('ucDisabilityElement');
+        const ucHousingElementSpan = document.getElementById('ucHousingElement');
+        const ucTotalElementsSpan = document.getElementById('ucTotalElements');
+        const ucWorkAllowanceSpan = document.getElementById('ucWorkAllowance');
+        const ucEarningsDeductionSpan = document.getElementById('ucEarningsDeduction');
+        const ucNetPaymentSpan = document.getElementById('ucNetPayment');
+        const addEstimatedUCtoCalendarBtn = document.getElementById('addEstimatedUCtoCalendarBtn');
+        const importPayEstimatorEarningsBtn = document.getElementById('importPayEstimatorEarningsBtn'); // New import button
+
+        // Confirm UC Add Modal Elements (New)
+        const confirmUcAddModal = document.getElementById('confirmUcAddModal');
+        const closeConfirmUcAddModalBtn = document.getElementById('closeConfirmUcAddModalBtn');
+        const modalEstimatedUcPaymentSpan = document.getElementById('modalEstimatedUcPayment');
+        const nextUcPayDateInput = document.getElementById('nextUcPayDateInput');
+        const confirmUcFrequencySelect = document.getElementById('confirmUcFrequencySelect');
+        const confirmAddUcBtn = document.getElementById('confirmAddUcBtn');
 
         let selectedDate = null; // Date of the day clicked on the calendar
         let editingTransactionId = null; // ID of the transaction being edited
         let editingTransactionInstanceDate = null; // The specific date of the instance being edited
+
+        let estimatedNetPayValue = 0; // To store net pay from estimator
+        let estimatedPayFrequencyValue = 'weekly'; // To store frequency from estimator
+        let estimatedUcPaymentValue = 0; // To store UC payment from estimator
+
 
         // --- Date Utility Functions ---
         function getDaysInMonth(year, month) {
@@ -672,50 +1107,61 @@
 
         /**
          * Calculates the cumulative balance up to a specific target date (inclusive).
+         * This function now incorporates manual balance updates.
          * Returns the final balance.
          */
         function calculateBalanceUpToDate(targetDate) {
             const allTransactions = JSON.parse(localStorage.getItem('transactions')) || [];
-            let cumulativeBalance = 0;
+            const balanceUpdates = JSON.parse(localStorage.getItem('balanceUpdates')) || [];
 
-            const startingBalanceTx = allTransactions.find(t => t.type === 'startingBalance');
+            targetDate.setHours(0, 0, 0, 0); // Normalize target date
+
+            let cumulativeBalance = 0;
             let calculationStartDate = null;
 
-            if (startingBalanceTx) {
-                calculationStartDate = parseDate(startingBalanceTx.date);
-                cumulativeBalance = startingBalanceTx.amount;
+            // Find the most recent balance update on or before the targetDate
+            const relevantBalanceUpdate = balanceUpdates
+                .filter(update => parseDate(update.date).getTime() <= targetDate.getTime())
+                .sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime())[0];
+
+            if (relevantBalanceUpdate) {
+                cumulativeBalance = relevantBalanceUpdate.amount;
+                calculationStartDate = parseDate(relevantBalanceUpdate.date);
             } else {
-                const nonStartingBalanceTransactions = allTransactions.filter(t => t.type !== 'startingBalance');
-                if (nonStartingBalanceTransactions.length > 0) {
-                    calculationStartDate = nonStartingBalanceTransactions.reduce((minDate, t) => {
+                // If no balance update before or on targetDate, find the earliest transaction date
+                // If no transactions either, balance is 0.
+                if (allTransactions.length > 0) {
+                    calculationStartDate = allTransactions.reduce((minDate, t) => {
                         const txDate = parseDate(t.date);
                         return txDate < minDate ? txDate : minDate;
-                    }, parseDate(nonStartingBalanceTransactions[0].date));
+                    }, parseDate(allTransactions[0].date));
                 } else {
-                    return 0; // No transactions at all
+                    return 0; // No transactions and no balance updates
                 }
             }
 
-            calculationStartDate.setHours(0, 0, 0, 0);
-            targetDate.setHours(0, 0, 0, 0);
+            calculationStartDate.setHours(0, 0, 0, 0); // Normalize calculation start date
 
+            // Iterate from the day *after* calculationStartDate up to the targetDate, applying transactions
+            // If calculationStartDate is the targetDate, this loop won't run, and cumulativeBalance will be the update amount.
             let currentDateIterator = new Date(calculationStartDate);
+            currentDateIterator.setDate(currentDateIterator.getDate() + 1); // Start from the day after the calculationStartDate
 
             while (currentDateIterator.getTime() <= targetDate.getTime()) {
                 let dailyNet = 0;
                 const formattedCurrentDate = formatDate(currentDateIterator);
 
                 allTransactions.forEach(t => {
-                    if (t.type === 'startingBalance') {
-                        return;
-                    }
-
                     const transactionStartDate = parseDate(t.date);
                     let nominalOccurrenceDate = null;
 
-                    if (transactionStartDate.getTime() > currentDateIterator.getTime()) {
+                    // Only consider transactions that started on or after the calculationStartDate
+                    // and on or before the current iteration date
+                    if (transactionStartDate.getTime() > currentDateIterator.getTime() ||
+                        transactionStartDate.getTime() < calculationStartDate.getTime()) {
                         return;
                     }
+                    // And transactions that haven't ended before the current iteration date
                     if (t.endDate && parseDate(t.endDate).getTime() < currentDateIterator.getTime()) {
                         return;
                     }
@@ -723,52 +1169,60 @@
                     const diffTime = currentDateIterator.getTime() - transactionStartDate.getTime();
                     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
+                    let isEffectiveToday = false;
                     switch (t.repeat) {
                         case 'none':
                             if (t.date === formattedCurrentDate) {
-                                nominalOccurrenceDate = currentDateIterator;
+                                isEffectiveToday = true;
                             }
                             break;
                         case 'daily':
-                            nominalOccurrenceDate = currentDateIterator;
+                            isEffectiveToday = true;
                             break;
                         case 'weekly':
                             if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 7 === 0) {
-                                nominalOccurrenceDate = currentDateIterator;
+                                isEffectiveToday = true;
                             }
                             break;
                         case 'bi-weekly':
                             if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 14 === 0) {
-                                nominalOccurrenceDate = currentDateIterator;
+                                isEffectiveToday = true;
                             }
                             break;
                         case 'four-weekly':
                             if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 28 === 0) {
-                                nominalOccurrenceDate = currentDateIterator;
+                                isEffectiveToday = true;
                             }
                             break;
                         case 'monthly':
-                            const nominalDateForMonth = new Date(currentDateIterator.getFullYear(), currentDateIterator.getMonth(), transactionStartDate.getDate());
-                            if (nominalDateForMonth.getTime() >= transactionStartDate.getTime()) {
-                                nominalOccurrenceDate = nominalDateForMonth;
+                            // Check if the day of the month matches, and the month is after or same as transaction start month
+                            const nominalDayOfMonth = transactionStartDate.getDate();
+                            const currentMonth = currentDateIterator.getMonth();
+                            const currentYear = currentDateIterator.getFullYear();
+
+                            // Create a date for the current month with the nominal day of transaction
+                            let potentialDate = new Date(currentYear, currentMonth, nominalDayOfMonth);
+
+                            // If the nominal day is past the end of the current month (e.g., 31st in Feb), use last day of month
+                            if (potentialDate.getMonth() !== currentMonth) {
+                                potentialDate = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
+                            }
+
+                            if (potentialDate.getTime() === currentDateIterator.getTime() && potentialDate.getTime() >= transactionStartDate.getTime()) {
+                                isEffectiveToday = true;
                             }
                             break;
                     }
 
-                    if (nominalOccurrenceDate) {
-                        const effectiveDate = getNextWorkingDay(nominalOccurrenceDate);
+                    if (isEffectiveToday) {
+                        const effectiveDate = getNextWorkingDay(currentDateIterator);
                         if (formatDate(effectiveDate) === formattedCurrentDate) {
                             dailyNet += (t.type === 'income' ? t.amount : -t.amount);
                         }
                     }
                 });
 
-                if (!startingBalanceTx || currentDateIterator.getTime() > parseDate(startingBalanceTx.date).getTime()) {
-                    cumulativeBalance += dailyNet;
-                } else if (startingBalanceTx && currentDateIterator.getTime() === parseDate(startingBalanceTx.date).getTime()) {
-                    cumulativeBalance += dailyNet;
-                }
-
+                cumulativeBalance += dailyNet;
                 currentDateIterator.setDate(currentDateIterator.getDate() + 1);
             }
             return cumulativeBalance;
@@ -777,7 +1231,7 @@
 
         /**
          * Returns an array of transactions effective on a specific date.
-         * @param {string} dateString - The date in YYYY-MM-DD format.
+         * @param {string} dateString - The date inYYYY-MM-DD format.
          * @returns {Array} List of transactions effective on that date.
          */
         function getTransactionsEffectiveOnDate(dateString) {
@@ -797,14 +1251,6 @@
                 }
                 if (t.endDate && parseDate(t.endDate).getTime() < selectedDayDate.getTime()) {
                     return; // Transaction has ended
-                }
-
-                // Special handling for startingBalance: only display it on its exact date
-                if (t.type === 'startingBalance') {
-                    if (t.date === dateString) {
-                        effectiveTransactions.push({ ...t, type: 'income', name: `Starting Balance: ${t.name}` });
-                    }
-                    return;
                 }
 
                 let nominalOccurrenceDate = null;
@@ -836,9 +1282,17 @@
                         }
                         break;
                     case 'monthly':
-                        const nominalDateForMonth = new Date(selectedDayDate.getFullYear(), selectedDayDate.getMonth(), transactionDate.getDate());
-                        if (nominalDateForMonth.getTime() >= transactionDate.getTime()) {
-                            nominalOccurrenceDate = nominalDateForMonth;
+                        const nominalDayOfMonth = transactionDate.getDate();
+                        const currentMonth = selectedDayDate.getMonth();
+                        const currentYear = selectedDayDate.getFullYear();
+
+                        let potentialDate = new Date(currentYear, currentMonth, nominalDayOfMonth);
+                        if (potentialDate.getMonth() !== currentMonth) {
+                            potentialDate = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
+                        }
+
+                        if (potentialDate.getTime() === selectedDayDate.getTime() && potentialDate.getTime() >= transactionDate.getTime()) {
+                            nominalOccurrenceDate = selectedDayDate;
                         }
                         break;
                 }
@@ -861,12 +1315,6 @@
 
             const daysInMonth = getDaysInMonth(currentYear, currentMonth);
             const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth); // 0 (Sun) - 6 (Sat)
-
-            const firstDayOfCurrentMonth = new Date(currentYear, currentMonth, 1);
-            const dayBeforeFirstDayOfCurrentMonth = new Date(firstDayOfCurrentMonth);
-            dayBeforeFirstDayOfCurrentMonth.setDate(firstDayOfCurrentMonth.getDate() - 1);
-
-            let currentMonthCumulativeBalance = calculateBalanceUpToDate(dayBeforeFirstDayOfCurrentMonth);
 
             // Add blank days for the start of the month
             for (let i = 0; i < firstDayIndex; i++) {
@@ -896,15 +1344,11 @@
                 const transactionsForDayEl = dayEl.querySelector('.calendar-day-transactions');
                 const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
 
-                let dailyNet = 0;
-                const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
-
-                transactionsOnThisDayForDisplay.forEach(t => {
-                    dailyNet += (t.type === 'income' ? t.amount : -t.amount);
-                });
-
-
+                // Get the balance for this specific day using the new calculation logic
+                const balanceForThisDay = calculateBalanceUpToDate(date);
+                
                 // Display transactions in the day cell
+                const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
                 if (transactionsOnThisDayForDisplay.length > 0) {
                     transactionsOnThisDayForDisplay.forEach(t => {
                         const p = document.createElement('p');
@@ -919,9 +1363,8 @@
                      transactionsForDayEl.appendChild(p);
                 }
 
-                currentMonthCumulativeBalance += dailyNet; // Update cumulative balance for the current day
-                cumulativeEl.textContent = `£${currentMonthCumulativeBalance.toFixed(2)}`;
-                if (currentMonthCumulativeBalance >= 0) {
+                cumulativeEl.textContent = `£${balanceForThisDay.toFixed(2)}`;
+                if (balanceForThisDay >= 0) {
                     cumulativeEl.classList.add('positive');
                     cumulativeEl.classList.remove('negative');
                 } else {
@@ -931,6 +1374,110 @@
 
                 dayEl.addEventListener('click', () => openAddTransactionModal(formattedDate));
                 calendarDaysEl.appendChild(dayEl);
+            }
+            applyZoom(); // Apply zoom after rendering calendar
+        }
+
+        // --- Zoom Functionality ---
+        function applyZoom() {
+            calendarContentWrapper.style.transform = `scale(${currentZoomLevel})`;
+        }
+
+        // Event handlers for zoom
+        function handleWheel(e) {
+            if (!isMobileView()) return; // Only permit zoom in mobile view
+            e.preventDefault(); // Prevent page scrolling
+
+            const oldZoomLevel = currentZoomLevel;
+            if (e.deltaY < 0) { // Zoom in
+                currentZoomLevel = Math.min(maxZoom, currentZoomLevel + zoomStep);
+            } else { // Zoom out
+                currentZoomLevel = Math.max(minZoom, currentZoomLevel - zoomStep);
+            }
+
+            if (currentZoomLevel !== oldZoomLevel) {
+                applyZoom();
+            }
+        }
+
+        function handleTouchStart(e) {
+            if (!isMobileView()) return; // Only permit zoom in mobile view
+            if (e.touches.length === 2) {
+                initialPinchDistance = Math.hypot(
+                    e.touches[1].pageX - e.touches[0].pageX,
+                    e.touches[1].pageY - e.touches[0].pageY
+                );
+                isPinching = true;
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (!isMobileView()) return; // Only permit zoom in mobile view
+            if (e.touches.length === 2 && isPinching) {
+                e.preventDefault(); // Prevent scrolling while pinching
+
+                const currentPinchDistance = Math.hypot(
+                    e.touches[1].pageX - e.touches[0].pageX,
+                    e.touches[1].pageY - e.touches[0].pageY
+                );
+
+                if (initialPinchDistance === null) { // Should not happen if touchstart worked, but for safety
+                    initialPinchDistance = currentPinchDistance;
+                    return;
+                }
+
+                // Calculate zoom factor based on change in pinch distance
+                const zoomFactor = currentPinchDistance / initialPinchDistance;
+                let newZoomLevel = currentZoomLevel * zoomFactor;
+
+                // Clamp new zoom level within min/max bounds
+                newZoomLevel = Math.max(minZoom, Math.min(maxZoom, newZoomLevel));
+
+                if (newZoomLevel !== currentZoomLevel) {
+                    currentZoomLevel = newZoomLevel;
+                    applyZoom();
+                }
+                // Update initial pinch distance for the next touchmove event to make zoom continuous
+                initialPinchDistance = currentPinchDistance;
+            }
+        }
+
+        function handleTouchEnd() {
+            if (!isMobileView()) return; // Only permit zoom in mobile view
+            initialPinchDistance = null;
+            isPinching = false;
+        }
+
+        function isMobileView() {
+            return window.innerWidth < 768; // Tailwind's 'md' breakpoint
+        }
+
+        function addZoomListeners() {
+            calendarContentWrapper.addEventListener('wheel', handleWheel, { passive: false });
+            calendarContentWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
+            calendarContentWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
+            calendarContentWrapper.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function removeZoomListeners() {
+            calendarContentWrapper.removeEventListener('wheel', handleWheel);
+            calendarContentWrapper.removeEventListener('touchstart', handleTouchStart);
+            calendarContentWrapper.removeEventListener('touchmove', handleTouchMove);
+            calendarContentWrapper.removeEventListener('touchend', handleTouchEnd);
+            // Reset zoom level when listeners are removed (e.g., switching to desktop view)
+            currentZoomLevel = 1.0;
+            applyZoom();
+        }
+
+        let zoomListenersActive = false; // Track if listeners are currently active
+
+        function checkAndApplyZoomListeners() {
+            if (isMobileView() && !zoomListenersActive) {
+                addZoomListeners();
+                zoomListenersActive = true;
+            } else if (!isMobileView() && zoomListenersActive) {
+                removeZoomListeners();
+                zoomListenersActive = false;
             }
         }
 
@@ -959,12 +1506,8 @@
 
         // Toggle visibility of repeat options based on transaction type for Add Modal
         function toggleAddRepeatOptions() {
-            if (addTransactionTypeInput.value === 'startingBalance') {
-                addTransactionRepeatGroup.classList.add('hidden');
-                addTransactionRepeatInput.value = 'none'; // Force 'none'
-            } else {
-                addTransactionRepeatGroup.classList.remove('hidden');
-            }
+            // Repeat options are always visible now that startingBalance is removed
+            addTransactionRepeatGroup.classList.remove('hidden');
         }
 
         function renderAddModalTransactions(date) {
@@ -979,8 +1522,8 @@
                     const div = document.createElement('div');
                     div.className = 'modal-transaction-item';
                     const repeatText = t.repeat !== 'none' ? ` (Repeats ${t.repeat})` : '';
-                    const displayType = t.type === 'startingBalance' ? 'Starting Balance' : (t.type === 'income' ? '+' : '-');
-                    const displayAmount = t.type === 'startingBalance' ? `£${t.amount.toFixed(2)}` : `${displayType}£${t.amount.toFixed(2)}`;
+                    const displayType = t.type === 'income' ? '+' : '-'; // No startingBalance type anymore
+                    const displayAmount = `${displayType}£${t.amount.toFixed(2)}`;
 
                     div.innerHTML = `
                         <div>
@@ -1042,12 +1585,8 @@
 
         // Toggle visibility of repeat options based on transaction type for Edit Modal
         function toggleEditRepeatOptions() {
-            if (editTransactionTypeInput.value === 'startingBalance') {
-                editTransactionRepeatGroup.classList.add('hidden');
-                editTransactionRepeatInput.value = 'none'; // Force 'none'
-            } else {
-                editTransactionRepeatGroup.classList.remove('hidden');
-            }
+            // Repeat options are always visible now that startingBalance is removed
+            editTransactionRepeatGroup.classList.remove('hidden');
         }
 
         // Event listener for transaction type change in Edit Modal
@@ -1068,11 +1607,11 @@
                 todaysTransactions.forEach(t => {
                     const div = document.createElement('div');
                     div.className = 'overview-transaction-item';
-                    const displayType = t.type === 'startingBalance' ? 'Starting Balance' : (t.type === 'income' ? '+' : '-');
-                    const displayAmount = t.type === 'startingBalance' ? `£${t.amount.toFixed(2)}` : `${displayType}£${t.amount.toFixed(2)}`;
+                    const displayType = t.type === 'income' ? '+' : '-';
+                    const displayAmount = `${displayType}£${t.amount.toFixed(2)}`;
                     div.innerHTML = `
                         <span>${t.name}</span>
-                        <span class="${t.type === 'income' || t.type === 'startingBalance' ? 'text-green-700' : 'text-red-700'}">${displayAmount}</span>
+                        <span class="${t.type === 'income' ? 'text-green-700' : 'text-red-700'}">${displayAmount}</span>
                     `;
                     overviewTodaysTransactionsListEl.appendChild(div);
                 });
@@ -1091,7 +1630,8 @@
             // 3. Days until next income transaction & 4. Lowest balance until next income
             let nextIncomeDate = null;
             let nextIncomeAmount = 0;
-            let lowestBalanceInPeriod = currentBalance; // Initialize with current balance
+            
+            let lowestBalanceInPeriod = currentBalance; 
 
             let searchDate = new Date(today);
             searchDate.setDate(searchDate.getDate() + 1); // Start searching from tomorrow
@@ -1101,19 +1641,17 @@
 
             while (!nextIncomeDate && daysSearched < maxSearchDays) {
                 const transactionsOnSearchDate = getTransactionsEffectiveOnDate(formatDate(searchDate));
-                let dailyNet = 0;
                 let incomeFoundToday = false;
 
                 transactionsOnSearchDate.forEach(t => {
-                    if (t.type === 'income' || t.type === 'startingBalance') { // Consider startingBalance as income for this purpose
+                    if (t.type === 'income') {
                         incomeFoundToday = true;
-                        nextIncomeAmount += t.amount; // Accumulate income for this day
+                        nextIncomeAmount += t.amount;
                     }
-                    dailyNet += (t.type === 'income' || t.type === 'startingBalance' ? t.amount : -t.amount);
                 });
 
-                // Calculate cumulative balance for the searchDate
                 const balanceAtSearchDate = calculateBalanceUpToDate(searchDate);
+
                 if (balanceAtSearchDate < lowestBalanceInPeriod) {
                     lowestBalanceInPeriod = balanceAtSearchDate;
                 }
@@ -1129,18 +1667,518 @@
             if (nextIncomeDate) {
                 const diffDays = Math.round((nextIncomeDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                 overviewNextIncomeStatementEl.textContent = `You will be paid £${nextIncomeAmount.toFixed(2)} in ${diffDays} day${diffDays === 1 ? '' : 's'}.`;
+                
+                // Display lowest balance if next income is found
+                overviewLowestBalanceEl.innerHTML = `<span class="value">£${lowestBalanceInPeriod.toFixed(2)}</span>`;
+                overviewLowestBalanceEl.classList.remove('positive', 'negative');
+                // Ensure the parent <p> tag has the correct styling for numerical value
+                overviewLowestBalanceEl.classList.add('text-3xl', 'font-bold');
+                overviewLowestBalanceEl.classList.remove('text-lg', 'text-gray-600', 'font-normal');
+
+
+                if (lowestBalanceInPeriod >= 0) {
+                    overviewLowestBalanceEl.classList.add('positive');
+                } else {
+                    overviewLowestBalanceEl.classList.add('negative');
+                }
+                lowestBalanceDescriptionEl.textContent = "This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.";
+
             } else {
                 overviewNextIncomeStatementEl.textContent = 'No future income found within 2 years.';
-            }
-
-            overviewLowestBalanceEl.textContent = `£${lowestBalanceInPeriod.toFixed(2)}`;
-            overviewLowestBalanceEl.classList.remove('positive', 'negative');
-            if (lowestBalanceInPeriod >= 0) {
-                overviewLowestBalanceEl.classList.add('positive');
-            } else {
-                overviewLowestBalanceEl.classList.add('negative');
+                
+                // Display message instead of negative balance, matching the style of "No future income found..."
+                // Set the <p> tag to have the desired styling for the message
+                overviewLowestBalanceEl.innerHTML = `Please provide your next expected income to see the funds that could be available.`;
+                overviewLowestBalanceEl.classList.remove('positive', 'negative', 'text-3xl', 'font-bold'); // Remove previous styling
+                overviewLowestBalanceEl.classList.add('text-lg', 'text-gray-600', 'font-normal'); // Add new styling
+                lowestBalanceDescriptionEl.textContent = ""; // Clear this as the full message is in overviewLowestBalanceEl
             }
         }
+
+        // --- Pay Estimator Logic ---
+
+        // UK Tax Year 2024/2025 (simplified)
+        const TAX_YEAR_START_MONTH = 3; // April (0-indexed is 3)
+        const TAX_YEAR_START_DAY = 6; // 6th April
+
+        const UK_TAX_THRESHOLDS = {
+            personalAllowance: 12570,
+            basicRateBand: 37700, // 50270 - 12570
+            higherRateBand: 74870, // 125140 - 50270
+        };
+
+        const UK_TAX_RATES = {
+            basic: 0.20,
+            higher: 0.40,
+            additional: 0.45,
+        };
+
+        const UK_NI_THRESHOLDS_ANNUAL = {
+            primaryThreshold: 12570, // No NI below this
+            upperEarningsLimit: 50270, // 10% between PT and UEL
+        };
+
+        const UK_NI_RATES = {
+            basic: 0.10, // 10% for earnings between PT and UEL
+            additional: 0.02, // 2% for earnings above UEL
+        };
+
+        function calculateIncomeTax(annualGrossPay) {
+            let tax = 0;
+            let taxableIncome = Math.max(0, annualGrossPay - UK_TAX_THRESHOLDS.personalAllowance);
+
+            // Basic Rate
+            if (taxableIncome > 0) {
+                const basicRateTaxable = Math.min(taxableIncome, UK_TAX_THRESHOLDS.basicRateBand);
+                tax += basicRateTaxable * UK_TAX_RATES.basic;
+                taxableIncome -= basicRateTaxable;
+            }
+
+            // Higher Rate
+            if (taxableIncome > 0) {
+                const higherRateTaxable = Math.min(taxableIncome, UK_TAX_THRESHOLDS.higherRateBand);
+                tax += higherRateTaxable * UK_TAX_RATES.higher;
+                taxableIncome -= higherRateTaxable;
+            }
+
+            // Additional Rate
+            if (taxableIncome > 0) {
+                tax += taxableIncome * UK_TAX_RATES.additional;
+            }
+            return tax;
+        }
+
+        function calculateNationalInsurance(annualGrossPay) {
+            let ni = 0;
+            const pt = UK_NI_THRESHOLDS_ANNUAL.primaryThreshold;
+            const uel = UK_NI_THRESHOLDS_ANNUAL.upperEarningsLimit;
+
+            // Earnings between Primary Threshold and Upper Earnings Limit
+            if (annualGrossPay > pt) {
+                const earningsInBasicBand = Math.min(annualGrossPay, uel) - pt;
+                ni += earningsInBasicBand * UK_NI_RATES.basic;
+            }
+
+            // Earnings above Upper Earnings Limit
+            if (annualGrossPay > uel) {
+                const earningsInAdditionalBand = annualGrossPay - uel;
+                ni += earningsInAdditionalBand * UK_NI_RATES.additional;
+            }
+            return ni;
+        }
+
+        function calculatePay() {
+            const rateAmount = parseFloat(payRateAmountInput.value);
+            const rateUnit = payRateUnitSelect.value;
+            const contractedUnits = parseFloat(contractedUnitsInput.value);
+            const payFrequency = payFrequencySelect.value;
+
+            if (isNaN(rateAmount) || rateAmount <= 0) {
+                showMessage('Please enter a valid positive rate amount.');
+                return null; // Return null to indicate failure
+            }
+            if (rateUnit !== 'annually' && rateUnit !== 'monthly' && (isNaN(contractedUnits) || contractedUnits <= 0)) {
+                showMessage('Please enter valid positive contracted units.');
+                return null; // Return null to indicate failure
+            }
+
+            let annualGrossPay = 0;
+
+            switch (rateUnit) {
+                case 'hourly':
+                    // Assuming contractedUnits is hours per week
+                    annualGrossPay = rateAmount * contractedUnits * 52; // 52 weeks in a year
+                    break;
+                case 'daily':
+                    // Assuming contractedUnits is days per week
+                    annualGrossPay = rateAmount * contractedUnits * 52; // 52 weeks in a year
+                    break;
+                case 'weekly':
+                    annualGrossPay = rateAmount * 52;
+                    break;
+                case 'monthly':
+                    annualGrossPay = rateAmount * 12;
+                    break;
+                case 'annually':
+                    annualGrossPay = rateAmount;
+                    break;
+                case 'project':
+                    // Assuming contractedUnits is projects per year
+                    annualGrossPay = rateAmount * contractedUnits;
+                    break;
+            }
+
+            const annualTax = calculateIncomeTax(annualGrossPay);
+            const annualNI = calculateNationalInsurance(annualGrossPay);
+            const annualNetPay = annualGrossPay - annualTax - annualNI;
+
+            let grossPay = 0;
+            let niDeduction = 0;
+            let taxDeduction = 0;
+            let netPay = 0;
+
+            switch (payFrequency) {
+                case 'weekly':
+                    grossPay = annualGrossPay / 52;
+                    niDeduction = annualNI / 52;
+                    taxDeduction = annualTax / 52;
+                    netPay = annualNetPay / 52;
+                    break;
+                case 'bi-weekly':
+                    grossPay = annualGrossPay / 26;
+                    niDeduction = annualNI / 26;
+                    taxDeduction = annualTax / 26;
+                    netPay = annualNetPay / 26;
+                    break;
+                case 'four-weekly':
+                    grossPay = annualGrossPay / 13; // 52 weeks / 4 weeks = 13 periods
+                    niDeduction = annualNI / 13;
+                    taxDeduction = annualTax / 13;
+                    netPay = annualNetPay / 13;
+                    break;
+                case 'monthly':
+                    grossPay = annualGrossPay / 12;
+                    niDeduction = annualNI / 12;
+                    taxDeduction = annualTax / 12;
+                    netPay = annualNetPay / 12;
+                    break;
+                case 'annually':
+                    grossPay = annualGrossPay;
+                    niDeduction = annualNI;
+                    taxDeduction = annualTax;
+                    netPay = annualNetPay;
+                    break;
+            }
+
+            grossPayResultSpan.textContent = `£${grossPay.toFixed(2)}`;
+            niDeductionResultSpan.textContent = `£${niDeduction.toFixed(2)}`;
+            taxDeductionResultSpan.textContent = `£${taxDeduction.toFixed(2)}`;
+            netPayResultSpan.textContent = `£${netPay.toFixed(2)}`;
+            payEstimatorResultsDiv.classList.remove('hidden');
+
+            return { grossPay, niDeduction, taxDeduction, netPay, payFrequency };
+        }
+
+        function updateContractedUnitsLabel() {
+            const rateUnit = payRateUnitSelect.value;
+            contractedUnitsGroup.classList.remove('hidden'); // Show by default
+
+            switch (rateUnit) {
+                case 'hourly':
+                    contractedUnitsLabel.textContent = 'Hours per Week:';
+                    contractedUnitsInput.placeholder = 'e.g., 40';
+                    break;
+                case 'daily':
+                    contractedUnitsLabel.textContent = 'Days per Week:';
+                    contractedUnitsInput.placeholder = 'e.g., 5';
+                    break;
+                case 'weekly':
+                    contractedUnitsGroup.classList.add('hidden'); // Hide for weekly
+                    break;
+                case 'monthly':
+                    contractedUnitsGroup.classList.add('hidden'); // Hide for monthly
+                    break;
+                case 'annually':
+                    contractedUnitsGroup.classList.add('hidden'); // Hide for annually
+                    break;
+                case 'project':
+                    contractedUnitsLabel.textContent = 'Projects per Year (Avg):';
+                    contractedUnitsInput.placeholder = 'e.g., 12';
+                    break;
+            }
+        }
+
+        payRateUnitSelect.addEventListener('change', updateContractedUnitsLabel);
+        calculatePayBtn.addEventListener('click', calculatePay);
+
+        addEstimatedPayToCalendarBtn.addEventListener('click', () => {
+            const payData = calculatePay(); // Recalculate to get current values
+            if (!payData) return; // If calculation failed, do nothing
+
+            estimatedNetPayValue = payData.netPay;
+            estimatedPayFrequencyValue = payData.payFrequency;
+
+            modalEstimatedNetPaySpan.textContent = `£${estimatedNetPayValue.toFixed(2)}`;
+            
+            // Set default date to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            nextPayDateInput.value = formatDate(tomorrow);
+            
+            confirmPayFrequencySelect.value = estimatedPayFrequencyValue;
+
+            confirmPayAddModal.classList.add('show');
+            document.body.classList.add('modal-open');
+        });
+
+        confirmAddPayBtn.addEventListener('click', () => {
+            const selectedNextPayDate = nextPayDateInput.value;
+            const confirmedFrequency = confirmPayFrequencySelect.value;
+
+            if (!selectedNextPayDate) {
+                showMessage('Please select a next pay day.');
+                return;
+            }
+
+            if (estimatedNetPayValue <= 0) {
+                showMessage('Net pay must be positive to add to calendar.');
+                return;
+            }
+            
+            const newTransaction = {
+                id: Date.now(),
+                type: 'income',
+                name: `Estimated Net Pay (${confirmedFrequency})`,
+                amount: estimatedNetPayValue,
+                date: selectedNextPayDate, // Use the date from the modal
+                repeat: confirmedFrequency, // Use the frequency from the modal
+                endDate: null
+            };
+
+            transactions.push(newTransaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            showMessage(`Estimated net pay of £${estimatedNetPayValue.toFixed(2)} added to calendar for ${selectedNextPayDate}!`);
+            
+            closeConfirmPayAddModal(); // Close the new modal
+            renderCalendar();
+            renderOverview();
+        });
+
+        function closeConfirmPayAddModal() {
+            confirmPayAddModal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
+
+        closeConfirmPayAddModalBtn.addEventListener('click', closeConfirmPayAddModal);
+        confirmPayAddModal.addEventListener('click', (e) => {
+            if (e.target === confirmPayAddModal) {
+                closeConfirmPayAddModal();
+            }
+        });
+
+        // --- Universal Credit Logic ---
+        const UC_RATES = {
+            standardAllowance: {
+                singleUnder25: 311.68,
+                single25Over: 393.45,
+                coupleBothUnder25: 488.82,
+                coupleOneOrBoth25Over: 617.60
+            },
+            childElement: {
+                firstChildBefore2017: 333.87, // Or only child
+                otherChild: 287.92 // Second child and subsequent
+            },
+            disabilityElement: {
+                lcw: 156.11,
+                lcwra: 416.19
+            },
+            workAllowance: {
+                noHousing: 379.00,
+                withHousing: 631.00
+            },
+            taperRate: 0.55 // 55%
+        };
+
+        function calculateUniversalCredit() {
+            const claimStatus = document.querySelector('input[name="ucClaimStatus"]:checked').value;
+            let ageGroupP1 = document.querySelector('input[name="ucAge"]:checked').value; // Default for single
+            let ageGroupP2 = null;
+
+            if (claimStatus === 'couple') {
+                ageGroupP1 = document.querySelector('input[name="ucAgeP1"]:checked').value;
+                ageGroupP2 = document.querySelector('input[name="ucAgeP2"]:checked').value;
+            }
+
+            const numChildren = parseInt(ucNumChildrenInput.value);
+            const childBornBefore2017 = ucChildBornBefore2017Checkbox.checked;
+            const disabilityStatus = ucDisabilityStatusSelect.value;
+            const monthlyRent = parseFloat(ucMonthlyRentInput.value);
+            const monthlyEarnings = parseFloat(ucMonthlyEarningsInput.value);
+
+            let totalElements = 0;
+            let standardAllowance = 0;
+            let childElements = 0;
+            let disabilityElement = 0;
+            let housingElement = 0;
+            let workAllowance = 0;
+            let earningsDeduction = 0;
+            let netUC = 0;
+
+            // 1. Standard Allowance
+            if (claimStatus === 'single') {
+                standardAllowance = (ageGroupP1 === 'under25') ? UC_RATES.standardAllowance.singleUnder25 : UC_RATES.standardAllowance.single25Over;
+            } else { // couple
+                if (ageGroupP1 === 'under25' && ageGroupP2 === 'under25') {
+                    standardAllowance = UC_RATES.standardAllowance.coupleBothUnder25;
+                } else {
+                    standardAllowance = UC_RATES.standardAllowance.coupleOneOrBoth25Over;
+                }
+            }
+            totalElements += standardAllowance;
+
+            // 2. Child Elements
+            if (numChildren > 0) {
+                if (childBornBefore2017) {
+                    childElements += UC_RATES.childElement.firstChildBefore2017;
+                    if (numChildren > 1) {
+                        childElements += (numChildren - 1) * UC_RATES.childElement.otherChild;
+                    }
+                } else {
+                    childElements += numChildren * UC_RATES.childElement.otherChild;
+                }
+            }
+            totalElements += childElements;
+
+            // 3. Disability Element
+            if (disabilityStatus === 'lcw') {
+                disabilityElement = UC_RATES.disabilityElement.lcw;
+            } else if (disabilityStatus === 'lcwra') {
+                disabilityElement = UC_RATES.disabilityElement.lcwra;
+            }
+            totalElements += disabilityElement;
+
+            // 4. Housing Element
+            housingElement = monthlyRent; // Simplified: Assumes full rent is covered, no LHA limits
+            totalElements += housingElement;
+
+            // 5. Work Allowance
+            const hasChildrenOrDisability = (numChildren > 0 || disabilityStatus !== 'none');
+            if (hasChildrenOrDisability) {
+                workAllowance = (monthlyRent > 0) ? UC_RATES.workAllowance.withHousing : UC_RATES.workAllowance.noHousing;
+            } else {
+                workAllowance = 0; // No work allowance if no children and no disability
+            }
+
+            // 6. Earnings Deduction
+            let earningsAfterWorkAllowance = Math.max(0, monthlyEarnings - workAllowance);
+            earningsDeduction = earningsAfterWorkAllowance * UC_RATES.taperRate;
+
+            // 7. Net UC Payment
+            netUC = totalElements - earningsDeduction;
+            netUC = Math.max(0, netUC); // UC cannot be negative
+
+            ucStandardAllowanceSpan.textContent = `£${standardAllowance.toFixed(2)}`;
+            ucChildElementsSpan.textContent = `£${childElements.toFixed(2)}`;
+            ucDisabilityElementSpan.textContent = `£${disabilityElement.toFixed(2)}`;
+            ucHousingElementSpan.textContent = `£${housingElement.toFixed(2)}`;
+            ucTotalElementsSpan.textContent = `£${totalElements.toFixed(2)}`;
+            ucWorkAllowanceSpan.textContent = `£${workAllowance.toFixed(2)}`;
+            ucEarningsDeductionSpan.textContent = `£${earningsDeduction.toFixed(2)}`;
+            ucNetPaymentSpan.textContent = `£${netUC.toFixed(2)}`;
+            ucNetPaymentSpan.classList.toggle('negative', netUC < 0); // Apply negative class if needed
+            ucCalculatorResultsDiv.classList.remove('hidden');
+
+            return netUC;
+        }
+
+        // Event listeners for UC inputs to update age group visibility
+        ucClaimStatusRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'single') {
+                    ucAgeGroupSingleDiv.classList.remove('hidden');
+                    ucAgeGroupCoupleDiv.classList.add('hidden');
+                } else {
+                    ucAgeGroupSingleDiv.classList.add('hidden');
+                    ucAgeGroupCoupleDiv.classList.remove('hidden');
+                }
+            });
+        });
+
+        calculateUCBtn.addEventListener('click', calculateUniversalCredit);
+
+        addEstimatedUCtoCalendarBtn.addEventListener('click', () => {
+            estimatedUcPaymentValue = calculateUniversalCredit(); // Recalculate UC
+            if (estimatedUcPaymentValue <= 0) {
+                showMessage('Estimated Universal Credit must be positive to add to calendar.');
+                return;
+            }
+
+            modalEstimatedUcPaymentSpan.textContent = `£${estimatedUcPaymentValue.toFixed(2)}`;
+            
+            // Set default date to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            nextUcPayDateInput.value = formatDate(tomorrow);
+            
+            // UC is always monthly, so pre-select monthly
+            confirmUcFrequencySelect.value = 'monthly';
+
+            confirmUcAddModal.classList.add('show');
+            document.body.classList.add('modal-open');
+        });
+
+        confirmAddUcBtn.addEventListener('click', () => {
+            const selectedNextUcPayDate = nextUcPayDateInput.value;
+            const confirmedFrequency = confirmUcFrequencySelect.value; // Will always be monthly for UC
+
+            if (!selectedNextUcPayDate) {
+                showMessage('Please select a next UC payment day.');
+                return;
+            }
+
+            if (estimatedUcPaymentValue <= 0) {
+                showMessage('Net UC payment must be positive to add to calendar.');
+                return;
+            }
+            
+            const newTransaction = {
+                id: Date.now(),
+                type: 'income',
+                name: `Estimated Universal Credit`,
+                amount: estimatedUcPaymentValue,
+                date: selectedNextUcPayDate,
+                repeat: confirmedFrequency,
+                endDate: null
+            };
+
+            transactions.push(newTransaction);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            showMessage(`Estimated UC of £${estimatedUcPaymentValue.toFixed(2)} added to calendar for ${selectedNextUcPayDate}!`);
+            
+            closeConfirmUcAddModal();
+            renderCalendar();
+            renderOverview();
+        });
+
+        function closeConfirmUcAddModal() {
+            confirmUcAddModal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+        }
+
+        closeConfirmUcAddModalBtn.addEventListener('click', closeConfirmUcAddModal);
+        confirmUcAddModal.addEventListener('click', (e) => {
+            if (e.target === confirmUcAddModal) {
+                closeConfirmUcAddModal();
+            }
+        });
+
+        // New: Import Pay Estimator Earnings
+        importPayEstimatorEarningsBtn.addEventListener('click', () => {
+            const payData = calculatePay(); // Recalculate pay to get latest net pay
+            if (payData && payData.netPay > 0) {
+                // Convert net pay to monthly if it's not already monthly
+                let monthlyNetPay = payData.netPay;
+                switch (payData.payFrequency) {
+                    case 'weekly':
+                        monthlyNetPay = payData.netPay * (52 / 12);
+                        break;
+                    case 'bi-weekly':
+                        monthlyNetPay = payData.netPay * (26 / 12);
+                        break;
+                    case 'four-weekly':
+                        monthlyNetPay = payData.netPay * (13 / 12);
+                        break;
+                    case 'annually':
+                        monthlyNetPay = payData.netPay / 12;
+                        break;
+                    // 'monthly' is already monthly
+                }
+                ucMonthlyEarningsInput.value = monthlyNetPay.toFixed(2);
+                showMessage(`Monthly net earnings (£${monthlyNetPay.toFixed(2)}) imported from Pay Estimator!`);
+            } else {
+                showMessage('Please calculate a positive net pay in the Pay Estimator first.');
+            }
+        });
 
 
         // --- Event Listeners ---
@@ -1176,6 +2214,56 @@
             }
         });
 
+        // Event listener for new Update Balance Button
+        updateBalanceBtn.addEventListener('click', () => {
+            const today = new Date();
+            // Pre-fill with current balance if available, otherwise empty
+            const currentBalance = calculateBalanceUpToDate(today);
+            newBalanceAmountInput.value = currentBalance.toFixed(2);
+            openUpdateBalanceModal();
+        });
+
+        // Update Balance Modal Logic
+        function openUpdateBalanceModal() {
+            updateBalanceModal.classList.add('show');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeUpdateBalanceModal() {
+            updateBalanceModal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            newBalanceAmountInput.value = ''; // Clear input
+            renderOverview(); // Re-render overview to reflect new balance
+            renderCalendar(); // Re-render calendar as well
+        }
+
+        closeUpdateBalanceModalBtn.addEventListener('click', closeUpdateBalanceModal);
+        updateBalanceModal.addEventListener('click', (e) => {
+            if (e.target === updateBalanceModal) {
+                closeUpdateBalanceModal();
+            }
+        });
+
+        saveBalanceBtn.addEventListener('click', () => {
+            const newBalance = parseFloat(newBalanceAmountInput.value);
+            if (isNaN(newBalance)) {
+                showMessage('Please enter a valid number for your balance.');
+                return;
+            }
+
+            const today = new Date();
+            const todayFormatted = formatDate(today);
+
+            // Remove any existing balance update for today, then add the new one
+            balanceUpdates = balanceUpdates.filter(update => update.date !== todayFormatted);
+            balanceUpdates.push({ date: todayFormatted, amount: newBalance });
+            localStorage.setItem('balanceUpdates', JSON.stringify(balanceUpdates));
+
+            showMessage('Balance updated successfully!');
+            closeUpdateBalanceModal();
+        });
+
+
         addTransactionTypeInput.addEventListener('change', toggleAddRepeatOptions);
 
         addTransactionBtn.addEventListener('click', () => {
@@ -1187,12 +2275,6 @@
             if (!name || isNaN(amount) || amount <= 0) {
                 showMessage('Please enter a valid name/source and a positive amount.');
                 return;
-            }
-
-            if (type === 'startingBalance') {
-                // Remove all existing startingBalance transactions to enforce "only one active"
-                transactions = transactions.filter(t => t.type !== 'startingBalance');
-                repeat = 'none'; // Force 'none' for starting balance
             }
 
             const newTransaction = {
@@ -1207,7 +2289,7 @@
 
             transactions.push(newTransaction);
             localStorage.setItem('transactions', JSON.stringify(transactions));
-            showMessage(type === 'startingBalance' ? 'Starting balance updated successfully!' : 'Transaction added successfully!');
+            showMessage('Transaction added successfully!');
             renderAddModalTransactions(selectedDate); // Update modal list
             // Clear form fields
             addTransactionNameInput.value = '';
@@ -1232,24 +2314,6 @@
             if (!originalTx) {
                 showMessage('Error: Original transaction not found.');
                 return;
-            }
-
-            // Handle Starting Balance type change
-            if (newType === 'startingBalance') {
-                // If the original transaction was not a starting balance, and we're making it one:
-                // Remove all other starting balance transactions.
-                if (originalTx.type !== 'startingBalance') {
-                    transactions = transactions.filter(t => t.type !== 'startingBalance');
-                }
-                // Ensure repeat is 'none' for starting balance
-                originalTx.repeat = 'none';
-                originalTx.endDate = null; // Starting balance should not have an end date
-            } else if (originalTx.type === 'startingBalance' && newType !== 'startingBalance') {
-                // If original was starting balance and now it's not, ensure no other starting balance exists,
-                // or if it does, it's the one we're converting.
-                // This scenario is less common, but important for data integrity.
-                // For simplicity, if a starting balance is converted, it just becomes a regular transaction.
-                // The 'only one starting balance' rule applies when a *new* starting balance is added.
             }
 
             const originalTxStartDate = parseDate(originalTx.date);
@@ -1302,22 +2366,49 @@
                 // If switching to overview, render it
                 if (button.dataset.tab === 'overview') {
                     renderOverview();
+                } else if (button.dataset.tab === 'calendar') {
+                    renderCalendar();
+                } else if (button.dataset.tab === 'pay-estimator') {
+                    updateContractedUnitsLabel(); // Initialize label for pay estimator
+                    payEstimatorResultsDiv.classList.add('hidden'); // Hide results initially
+                } else if (button.dataset.tab === 'universal-credit') {
+                    // Initialize UC tab visibility for age groups
+                    const currentClaimStatus = document.querySelector('input[name="ucClaimStatus"]:checked').value;
+                    if (currentClaimStatus === 'single') {
+                        ucAgeGroupSingleDiv.classList.remove('hidden');
+                        ucAgeGroupCoupleDiv.classList.add('hidden');
+                    } else {
+                        ucAgeGroupSingleDiv.classList.add('hidden');
+                        ucAgeGroupCoupleDiv.classList.remove('hidden');
+                    }
+                    ucCalculatorResultsDiv.classList.add('hidden'); // Hide results initially
                 }
             });
         });
 
-        // Event listener for the new "Add Transaction" button
-        addTodayTransactionBtn.addEventListener('click', () => {
-            const today = new Date();
-            openAddTransactionModal(formatDate(today));
-        });
-
         // Initial render on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // Initially render the overview tab
-            document.querySelector('.tab-button[data-tab="overview"]').click();
+            // Set Overview as the default active tab
+            const overviewButton = document.querySelector('.tab-button[data-tab="overview"]');
+            const overviewContent = document.getElementById('overviewTabContent');
+            
+            // Deactivate all tabs first
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Activate Overview tab
+            overviewButton.classList.add('active');
+            overviewContent.classList.add('active');
+
+            renderOverview(); // Render overview content
             renderCalendar(); // Render calendar in background even if not visible
+            
+            // Initial check for zoom listeners
+            checkAndApplyZoomListeners();
         });
+
+        // Add resize listener to re-evaluate zoom listeners
+        window.addEventListener('resize', checkAndApplyZoomListeners);
     </script>
 </body>
 </html>
