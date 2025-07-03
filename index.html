@@ -281,10 +281,11 @@
         }
 
         /* Daily View specific styles */
-        .calendar-daily-view-container {
-            position: relative; /* For absolute positioning of sliding content */
-            overflow: hidden; /* Hide overflowing content during swipe */
-            height: 300px; /* Fixed height for daily view container to prevent height jump */
+        .calendar-grid-days.daily-view-active { /* New class for daily view container */
+            position: relative;
+            overflow: hidden;
+            height: 400px; /* Fixed height for daily view container to prevent height jump */
+            display: block; /* Override grid display for daily view */
         }
         .daily-view-content {
             position: absolute;
@@ -296,13 +297,21 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            box-sizing: border-box; /* Include padding/border in width/height */
         }
+        .daily-view-content > .calendar-day { /* Target the actual day element inside the content wrapper */
+            width: 100%;
+            height: 100%; /* Make it fill the parent */
+            box-sizing: border-box;
+            cursor: default; /* Remove pointer cursor for the whole day */
+        }
+
         .calendar-daily-view-container .calendar-day {
             min-height: 300px; /* Larger height for daily view */
             padding: 1.5rem;
             align-items: stretch; /* Stretch content to fill width */
-            width: 100%; /* Ensure day takes full width within its container */
-            box-sizing: border-box; /* Include padding in width */
+            /* width: 100%; Removed, handled by .daily-view-content > .calendar-day */
+            /* box-sizing: border-box; Removed, handled by .daily-view-content > .calendar-day */
             cursor: default; /* Remove pointer cursor for the whole day */
         }
         .calendar-daily-view-container .calendar-day-transactions {
@@ -590,7 +599,7 @@
             .calendar-grid-header-row,
             .calendar-grid-days {
                 grid-template-columns: repeat(7, 1fr); /* Force equal width columns on mobile */
-                gap: 0.2rem; /* Reduce gap to save space */
+                gap: 0.4rem; /* Increased gap slightly for better separation */
             }
             .calendar-day {
                 min-height: 100px; /* Slightly reduce height for mobile monthly view */
@@ -1210,7 +1219,7 @@
         const editTransactionModal = document.getElementById('editTransactionModal');
         const closeEditModalBtn = document.getElementById('closeEditModalBtn');
         const editTransactionTypeInput = document.getElementById('editTransactionType');
-        const editTransactionNameInput = document.getElementById('editTransactionName');
+        const editTransactionNameInput = document = document.getElementById('editTransactionName');
         const editTransactionAmountInput = document.getElementById('editTransactionAmount');
         const editTransactionRepeatInput = document.getElementById('editTransactionRepeat');
         const editTransactionRepeatGroup = document.getElementById('editTransactionRepeatGroup');
@@ -1302,6 +1311,16 @@
         let estimatedNetPayValue = 0; // To store net pay from estimator
         let estimatedPayFrequencyValue = 'weekly'; // To store frequency from estimator
         let estimatedUcPaymentValue = 0; // To store UC payment from estimator
+
+        // Global references for current and adjacent day elements in daily view
+        let currentDailyContentEl = null;
+        let adjacentDailyContentEl = null;
+
+        // Swipe tracking variables
+        let touchStartX = 0;
+        let touchCurrentX = 0;
+        let isSwiping = false;
+        let swipeDirection = 0; // -1 for right-to-left (next day), 1 for left-to-right (prev day)
 
         // Scrollbar width calculation for modal fix
         let scrollbarWidth = 0;
@@ -1589,6 +1608,7 @@
             calendarDaysEl.innerHTML = '';
             calendarContentWrapper.classList.remove('calendar-daily-view-container'); // Remove daily view specific class
             calendarGridHeaderRow.style.display = 'grid'; // Show header for monthly view
+            calendarDaysEl.classList.remove('daily-view-active'); // Remove daily view container class
             
             // Set grid for monthly view - responsive
             if (isMobileView()) {
@@ -1681,30 +1701,16 @@
             }
         }
 
-        // Function to render the daily view with swipe animation
-        function renderDailyView(direction = 0) { // direction: 0 for no swipe, -1 for prev, 1 for next
-            calendarDaysEl.innerHTML = ''; // Clear the main grid container
-            calendarContentWrapper.classList.add('calendar-daily-view-container');
-            calendarGridHeaderRow.style.display = 'none';
-
-            currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' }); // Only show year in header
-            prevMonthBtn.textContent = '< Prev Day';
-            nextMonthBtn.textContent = 'Next Day >';
-
-            const formattedDate = formatDate(currentDailyDate);
-
-            // Create the content wrapper for the current day
-            const dailyViewContent = document.createElement('div');
-            dailyViewContent.className = 'daily-view-content';
-            dailyViewContent.style.transform = `translateX(${direction * 100}%)`; // Initial position for animation
-
+        // Function to render the daily view content into a container
+        function renderDailyViewContent(date, parentElement, initialTransform = 'translateX(0)') {
+            const formattedDate = formatDate(date);
             const dayEl = document.createElement('div');
-            dayEl.className = 'calendar-day today';
+            dayEl.className = 'calendar-day today'; // Always highlight current day in daily view
             dayEl.dataset.date = formattedDate;
 
             // Display full date in the day number area
             dayEl.innerHTML = `
-                <div class="calendar-day-number">${currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</div>
+                <div class="calendar-day-number">${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                 <div class="calendar-day-transactions"></div>
                 <div class="calendar-day-cumulative"></div>
                 <button class="add-transaction-daily-btn">Add New Transaction</button>
@@ -1714,10 +1720,11 @@
             const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
             const addTransactionDailyBtn = dayEl.querySelector('.add-transaction-daily-btn');
 
-            const balanceForThisDay = calculateBalanceUpToDate(currentDailyDate);
+            const balanceForThisDay = calculateBalanceUpToDate(date);
             const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
 
             if (transactionsOnThisDayForDisplay.length > 0) {
+                transactionsForDayEl.innerHTML = ''; // Clear "No entries"
                 transactionsOnThisDayForDisplay.forEach(t => {
                     const div = document.createElement('div');
                     div.className = 'modal-transaction-item flex justify-between items-center py-1';
@@ -1743,15 +1750,12 @@
                         transactions = transactions.filter(tx => tx.id !== transactionIdToDelete);
                         localStorage.setItem('transactions', JSON.stringify(transactions));
                         showMessage('Transaction deleted!');
-                        renderDailyView(); // Re-render daily view
+                        updateCalendarView(); // Re-render daily view after deletion
                     });
                     transactionsForDayEl.appendChild(div);
                 });
             } else {
-                const p = document.createElement('p');
-                p.textContent = 'No entries';
-                p.className = 'text-gray-400 text-center py-4';
-                transactionsForDayEl.appendChild(p);
+                transactionsForDayEl.innerHTML = '<p class="text-gray-400 text-center py-4">No entries</p>';
             }
 
             cumulativeEl.textContent = `£${balanceForThisDay.toFixed(2)}`;
@@ -1764,23 +1768,43 @@
             }
 
             addTransactionDailyBtn.addEventListener('click', () => openAddTransactionModal(formattedDate));
-            
-            dailyViewContent.appendChild(dayEl);
-            calendarDaysEl.appendChild(dailyViewContent);
 
-            // Animate into view if a direction was specified
-            if (direction !== 0) {
-                requestAnimationFrame(() => {
-                    dailyViewContent.style.transform = 'translateX(0)';
-                });
-            }
+            const dailyViewContentWrapper = document.createElement('div');
+            dailyViewContentWrapper.className = 'daily-view-content';
+            dailyViewContentWrapper.style.transform = initialTransform;
+            dailyViewContentWrapper.appendChild(dayEl);
+            parentElement.appendChild(dailyViewContentWrapper);
+
+            return dailyViewContentWrapper; // Return the new wrapper element
         }
 
         function updateCalendarView() {
             if (currentCalendarView === 'monthly') {
+                // Clean up daily view elements if switching from daily
+                if (currentDailyContentEl && currentDailyContentEl.parentNode) {
+                    currentDailyContentEl.parentNode.removeChild(currentDailyContentEl);
+                    currentDailyContentEl = null;
+                }
+                if (adjacentDailyContentEl && adjacentDailyContentEl.parentNode) {
+                    adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                    adjacentDailyContentEl = null;
+                }
+
                 renderCalendar();
             } else { // daily view
-                renderDailyView(); // Initial render without swipe
+                // Ensure calendarDaysEl is set up for daily view
+                calendarDaysEl.innerHTML = ''; // Clear any existing content
+                calendarContentWrapper.classList.add('calendar-daily-view-container');
+                calendarGridHeaderRow.style.display = 'none';
+                calendarDaysEl.classList.add('daily-view-active'); // Add new class for styling
+                
+                // Render the current day
+                currentDailyContentEl = renderDailyViewContent(currentDailyDate, calendarDaysEl);
+
+                // Update header
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' });
+                prevMonthBtn.textContent = '< Prev Day';
+                nextMonthBtn.textContent = 'Next Day >';
             }
         }
 
@@ -1809,17 +1833,41 @@
                 }
                 updateCalendarView();
             } else { // daily view
-                const dailyViewContent = calendarDaysEl.querySelector('.daily-view-content');
-                if (!dailyViewContent) return;
+                // Simulate a swipe to the right for "Prev Day"
+                if (currentDailyContentEl) currentDailyContentEl.style.transition = 'transform 0.2s ease-out';
+                if (adjacentDailyContentEl) adjacentDailyContentEl.style.transition = 'transform 0.2s ease-out';
 
-                dailyViewContent.style.transform = 'translateX(100%)'; // Slide current day out to the right
-                dailyViewContent.addEventListener('transitionend', function handler() {
-                    dailyViewContent.removeEventListener('transitionend', handler);
-                    currentDailyDate.setDate(currentDailyDate.getDate() - 1);
-                    currentMonth = currentDailyDate.getMonth();
-                    currentYear = currentDailyDate.getFullYear();
-                    renderDailyView(-1); // Render new day, sliding in from left
-                });
+                const prevDay = new Date(currentDailyDate);
+                prevDay.setDate(prevDay.getDate() - 1);
+                
+                // If there's an existing adjacent element, remove it
+                if (adjacentDailyContentEl && adjacentDailyContentEl.parentNode) {
+                    adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                    adjacentDailyContentEl = null;
+                }
+                adjacentDailyContentEl = renderDailyViewContent(prevDay, calendarDaysEl, 'translateX(-100%)'); // Render new day off-screen left
+
+                if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(100%)'; // Slide current day out right
+                if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)'; // Slide new day in
+
+                // Update date after animation starts
+                currentDailyDate.setDate(currentDailyDate.getDate() - 1);
+                currentMonth = currentDailyDate.getMonth();
+                currentYear = currentDailyDate.getFullYear();
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' }); // Update year in header
+
+                // Clean up old element after transition
+                if (currentDailyContentEl) {
+                    currentDailyContentEl.addEventListener('transitionend', function handler() {
+                        currentDailyContentEl.removeEventListener('transitionend', handler);
+                        if (currentDailyContentEl.parentNode) {
+                            currentDailyContentEl.parentNode.removeChild(currentDailyContentEl);
+                        }
+                        // The adjacentDailyContentEl becomes the new current
+                        currentDailyContentEl = adjacentDailyContentEl;
+                        adjacentDailyContentEl = null; // Clear adjacent
+                    }, { once: true }); // Use once: true to ensure listener is removed
+                }
             }
         });
 
@@ -1832,25 +1880,45 @@
                 }
                 updateCalendarView();
             } else { // daily view
-                const dailyViewContent = calendarDaysEl.querySelector('.daily-view-content');
-                if (!dailyViewContent) return;
+                // Simulate a swipe to the left for "Next Day"
+                if (currentDailyContentEl) currentDailyContentEl.style.transition = 'transform 0.2s ease-out';
+                if (adjacentDailyContentEl) adjacentDailyContentEl.style.transition = 'transform 0.2s ease-out';
 
-                dailyViewContent.style.transform = 'translateX(-100%)'; // Slide current day out to the left
-                dailyViewContent.addEventListener('transitionend', function handler() {
-                    dailyViewContent.removeEventListener('transitionend', handler);
-                    currentDailyDate.setDate(currentDailyDate.getDate() + 1);
-                    currentMonth = currentDailyDate.getMonth();
-                    currentYear = currentDailyDate.getFullYear();
-                    renderDailyView(1); // Render new day, sliding in from right
-                });
+                const nextDay = new Date(currentDailyDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+
+                // If there's an existing adjacent element, remove it
+                if (adjacentDailyContentEl && adjacentDailyContentEl.parentNode) {
+                    adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                    adjacentDailyContentEl = null;
+                }
+                adjacentDailyContentEl = renderDailyViewContent(nextDay, calendarDaysEl, 'translateX(100%)'); // Render new day off-screen right
+
+                if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(-100%)'; // Slide current day out left
+                if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)'; // Slide new day in
+
+                // Update date after animation starts
+                currentDailyDate.setDate(currentDailyDate.getDate() + 1);
+                currentMonth = currentDailyDate.getMonth();
+                currentYear = currentDailyDate.getFullYear();
+                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' }); // Update year in header
+
+                // Clean up old element after transition
+                if (currentDailyContentEl) {
+                    currentDailyContentEl.addEventListener('transitionend', function handler() {
+                        currentDailyContentEl.removeEventListener('transitionend', handler);
+                        if (currentDailyContentEl.parentNode) {
+                            currentDailyContentEl.parentNode.removeChild(currentDailyContentEl);
+                        }
+                        // The adjacentDailyContentEl becomes the new current
+                        currentDailyContentEl = adjacentDailyContentEl;
+                        adjacentDailyContentEl = null; // Clear adjacent
+                    }, { once: true }); // Use once: true to ensure listener is removed
+                }
             }
         });
 
         // Mobile swipe for daily view
-        let touchStartX = 0;
-        let touchCurrentX = 0;
-        let isSwiping = false;
-
         function isMobileView() {
             return window.innerWidth < 768; // Tailwind's 'md' breakpoint
         }
@@ -1860,63 +1928,120 @@
                 touchStartX = e.touches[0].clientX;
                 touchCurrentX = touchStartX;
                 isSwiping = true;
-                const dailyViewContent = calendarDaysEl.querySelector('.daily-view-content');
-                if (dailyViewContent) {
-                    dailyViewContent.style.transition = 'none'; // Disable transition during active swipe
+                swipeDirection = 0; // Reset direction on start
+
+                if (currentDailyContentEl) {
+                    currentDailyContentEl.style.transition = 'none'; // Disable transition
+                }
+
+                // Remove any lingering adjacent element
+                if (adjacentDailyContentEl && adjacentDailyContentEl.parentNode) {
+                    adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                    adjacentDailyContentEl = null;
                 }
             }
-        }, { passive: true });
+        }, { passive: false }); // passive: false is crucial for preventDefault
+
 
         calendarContentWrapper.addEventListener('touchmove', (e) => {
             if (currentCalendarView === 'daily' && isMobileView() && isSwiping) {
+                e.preventDefault(); // Prevent page scrolling
+
                 touchCurrentX = e.touches[0].clientX;
                 const deltaX = touchCurrentX - touchStartX;
-                const dailyViewContent = calendarDaysEl.querySelector('.daily-view-content');
-                if (dailyViewContent) {
-                    requestAnimationFrame(() => {
-                        dailyViewContent.style.transform = `translateX(${deltaX}px)`;
-                    });
+
+                if (currentDailyContentEl) {
+                    currentDailyContentEl.style.transform = `translateX(${deltaX}px)`;
+                }
+
+                // Determine swipe direction and pre-render adjacent element if not already done
+                const minDeltaToPreRender = 20; // Small threshold to start pre-rendering
+                if (!adjacentDailyContentEl && Math.abs(deltaX) > minDeltaToPreRender) {
+                    const adjacentDate = new Date(currentDailyDate);
+                    if (deltaX < 0) { // Swiping left, so next day
+                        adjacentDate.setDate(adjacentDate.getDate() + 1);
+                        adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(${window.innerWidth}px)`);
+                        swipeDirection = -1;
+                    } else { // Swiping right, so previous day
+                        adjacentDate.setDate(adjacentDate.getDate() - 1);
+                        adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(-${window.innerWidth}px)`);
+                        swipeDirection = 1;
+                    }
+                    // Disable transition on adjacent element too for direct manipulation
+                    if (adjacentDailyContentEl) {
+                        adjacentDailyContentEl.style.transition = 'none';
+                    }
+                }
+
+                // If adjacent element exists, move it along with the current one
+                if (adjacentDailyContentEl) {
+                    const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
+                    adjacentDailyContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
                 }
             }
-        }, { passive: true });
+        }, { passive: false }); // passive: false is crucial for preventDefault
 
         calendarContentWrapper.addEventListener('touchend', () => {
             if (currentCalendarView === 'daily' && isMobileView() && isSwiping) {
                 isSwiping = false;
-                const swipeThreshold = window.innerWidth / 4; // Swipe a quarter of the screen width
+                const swipeThreshold = window.innerWidth / 3; // Swipe a third of the screen width
                 const swipeDistance = touchCurrentX - touchStartX;
-                const dailyViewContent = calendarDaysEl.querySelector('.daily-view-content');
-                if (!dailyViewContent) return;
 
-                dailyViewContent.style.transition = 'transform 0.2s ease-out'; // Re-enable transition for snap-back
+                if (currentDailyContentEl) {
+                    currentDailyContentEl.style.transition = 'transform 0.2s ease-out';
+                }
+                if (adjacentDailyContentEl) {
+                    adjacentDailyContentEl.style.transition = 'transform 0.2s ease-out';
+                }
 
-                if (swipeDistance > swipeThreshold) {
-                    // Swiped right (previous day)
-                    dailyViewContent.style.transform = 'translateX(100%)';
-                    dailyViewContent.addEventListener('transitionend', function handler() {
-                        dailyViewContent.removeEventListener('transitionend', handler);
-                        currentDailyDate.setDate(currentDailyDate.getDate() - 1);
-                        currentMonth = currentDailyDate.getMonth();
-                        currentYear = currentDailyDate.getFullYear();
-                        renderDailyView(-1);
-                    });
-                } else if (swipeDistance < -swipeThreshold) {
-                    // Swiped left (next day)
-                    dailyViewContent.style.transform = 'translateX(-100%)';
-                    dailyViewContent.addEventListener('transitionend', function handler() {
-                        dailyViewContent.removeEventListener('transitionend', handler);
-                        currentDailyDate.setDate(currentDailyDate.getDate() + 1);
-                        currentMonth = currentDailyDate.getMonth();
-                        currentYear = currentDailyDate.getFullYear();
-                        renderDailyView(1);
-                    });
+                if (Math.abs(swipeDistance) > swipeThreshold && adjacentDailyContentEl) {
+                    // Swipe successful
+                    if (swipeDirection === -1) { // Swiped left (next day)
+                        if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(-100%)';
+                        if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
+                        
+                        currentDailyDate.setDate(currentDailyDate.getDate() + 1); // Update date
+                    } else { // Swiped right (previous day)
+                        if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(100%)';
+                        if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
+
+                        currentDailyDate.setDate(currentDailyDate.getDate() - 1); // Update date
+                    }
+
+                    // Update header to reflect new date
+                    currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { year: 'numeric' });
+
+                    // Clean up old element after transition
+                    if (currentDailyContentEl) {
+                        currentDailyContentEl.addEventListener('transitionend', function handler() {
+                            currentDailyContentEl.removeEventListener('transitionend', handler);
+                            if (currentDailyContentEl.parentNode) {
+                                currentDailyContentEl.parentNode.removeChild(currentDailyContentEl);
+                            }
+                            // The adjacentDailyContentEl becomes the new current
+                            currentDailyContentEl = adjacentDailyContentEl;
+                            adjacentDailyContentEl = null; // Clear adjacent
+                        }, { once: true });
+                    }
                 } else {
-                    // Not enough swipe, snap back
-                    dailyViewContent.style.transform = 'translateX(0)';
+                    // Snap back
+                    if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(0)';
+                    if (adjacentDailyContentEl) {
+                        const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
+                        adjacentDailyContentEl.style.transform = `translateX(${initialAdjacentOffset}px)`;
+                        adjacentDailyContentEl.addEventListener('transitionend', function handler() {
+                            adjacentDailyContentEl.removeEventListener('transitionend', handler);
+                            if (adjacentDailyContentEl.parentNode) {
+                                adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                            }
+                            adjacentDailyContentEl = null;
+                        }, { once: true });
+                    }
                 }
                 // Reset touch positions
                 touchStartX = 0;
                 touchCurrentX = 0;
+                swipeDirection = 0;
             }
         });
 
