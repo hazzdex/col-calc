@@ -990,16 +990,7 @@
     <div id="addTransactionModal" class="modal">
         <div class="modal-content">
             <button class="modal-close-btn" id="closeAddModalBtn">&times;</button>
-            <!-- Removed h2 with addModalTitle and addModalDate span -->
             
-            <!-- Removed Existing Transactions list -->
-            <!-- <div class="mb-4">
-                <h3>Existing Transactions</h3>
-                <div id="addModalTransactionList" class="modal-transaction-list">
-                    <p id="noAddModalTransactionsMessage" class="text-gray-500 text-center py-4">No transactions for this day.</p>
-                </div>
-            </div> -->
-
             <!-- Add New Transaction Form -->
             <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
                 <h3 class="text-center">Add New Transaction for <span id="addModalDate" class="font-normal"></span></h3>
@@ -1431,6 +1422,7 @@
 
             let cumulativeBalance = 0;
             let effectiveCalculationStartDate = null; // The actual date from which we start applying transactions
+            let balanceUpdateOnTargetDate = false; // Flag to indicate if a balance update exists for the targetDate
 
             // 1. Find the most recent balance update on or before the targetDate
             const relevantBalanceUpdate = balanceUpdates
@@ -1441,7 +1433,10 @@
                 cumulativeBalance = relevantBalanceUpdate.amount;
                 effectiveCalculationStartDate = parseDate(relevantBalanceUpdate.date);
                 effectiveCalculationStartDate.setHours(0,0,0,0);
-                // Start applying transactions from this date (inclusive)
+
+                if (effectiveCalculationStartDate.getTime() === targetDate.getTime()) {
+                    balanceUpdateOnTargetDate = true; // The balance for targetDate is explicitly set
+                }
             } else {
                 // No balance update found on or before targetDate.
                 // Start from the earliest transaction date, or today if no transactions.
@@ -1457,12 +1452,24 @@
                 }
             }
 
-            // Ensure we don't start calculating from a date in the future
+            // If the effective start date is after the target date, return the initial balance.
+            // This handles cases where the only balance update is after the target date.
             if (effectiveCalculationStartDate.getTime() > targetDate.getTime()) {
-                return cumulativeBalance; // If start date is after target date, return initial balance.
+                return cumulativeBalance;
+            }
+
+            // If there was a balance update *on* the target date, we don't need to iterate and add transactions for that day.
+            // The `cumulativeBalance` is already the final balance for that day.
+            if (balanceUpdateOnTargetDate) {
+                return cumulativeBalance;
             }
 
             let currentDateIterator = new Date(effectiveCalculationStartDate);
+            // If the balance update was *before* the target date, we need to start iterating from the day *after* the balance update.
+            if (relevantBalanceUpdate && effectiveCalculationStartDate.getTime() < targetDate.getTime()) {
+                currentDateIterator.setDate(currentDateIterator.getDate() + 1);
+            }
+
 
             while (currentDateIterator.getTime() <= targetDate.getTime()) {
                 let dailyNet = 0;
@@ -1539,17 +1546,7 @@
                     }
                 });
 
-                // Only apply dailyNet if the current date is *after* the initial balance update date,
-                // or if it's the same day but we're starting from scratch (no balance update).
-                // If it's the balance update day, the balance is already set to the update amount.
-                if (currentDateIterator.getTime() > effectiveCalculationStartDate.getTime() ||
-                    (currentDateIterator.getTime() === effectiveCalculationStartDate.getTime() && !relevantBalanceUpdate)) {
-                    cumulativeBalance += dailyNet;
-                } else if (currentDateIterator.getTime() === effectiveCalculationStartDate.getTime() && relevantBalanceUpdate) {
-                    // If it's the effectiveCalculationStartDate and there was a relevantBalanceUpdate,
-                    // transactions on this day should still be applied.
-                    cumulativeBalance += dailyNet;
-                }
+                cumulativeBalance += dailyNet; // Apply daily net for all days in the iteration range
 
                 currentDateIterator.setDate(currentDateIterator.getDate() + 1);
             }
@@ -1940,121 +1937,168 @@
         }
 
         calendarContentWrapper.addEventListener('touchstart', (e) => {
-            if (currentCalendarView === 'daily' && isMobileView()) {
+            if (isMobileView()) { // Apply to both daily and monthly if swiping
                 touchStartX = e.touches[0].clientX;
                 touchCurrentX = touchStartX;
                 isSwiping = true;
                 swipeDirection = 0; // Reset direction on start
 
-                if (currentDailyContentEl) {
-                    currentDailyContentEl.style.transition = 'none'; // Disable transition
-                }
-
-                // Remove any lingering adjacent element
-                if (adjacentDailyContentEl && adjacentDailyContentEl.parentNode) {
-                    adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
-                    adjacentDailyContentEl = null;
+                if (currentCalendarView === 'daily') {
+                    if (currentDailyContentEl) {
+                        currentDailyContentEl.style.transition = 'none'; // Disable transition
+                    }
+                    // Remove any lingering adjacent element for daily view
+                    if (adjacentDailyContentEl && adjacentDailyContentEl.parentNode) {
+                        adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                        adjacentDailyContentEl = null;
+                    }
+                } else if (currentCalendarView === 'monthly') {
+                    if (calendarDaysEl) {
+                        calendarDaysEl.style.transition = 'none'; // Disable transition during drag
+                    }
                 }
             }
         }, { passive: false }); // passive: false is crucial for preventDefault
 
 
         calendarContentWrapper.addEventListener('touchmove', (e) => {
-            if (currentCalendarView === 'daily' && isMobileView() && isSwiping) {
+            if (isMobileView() && isSwiping) { // Apply to both daily and monthly if swiping
                 e.preventDefault(); // Prevent page scrolling
 
                 touchCurrentX = e.touches[0].clientX;
                 const deltaX = touchCurrentX - touchStartX;
 
-                if (currentDailyContentEl) {
-                    currentDailyContentEl.style.transform = `translateX(${deltaX}px)`;
-                }
-
-                // Determine swipe direction and pre-render adjacent element if not already done
-                const minDeltaToPreRender = 20; // Small threshold to start pre-rendering
-                if (!adjacentDailyContentEl && Math.abs(deltaX) > minDeltaToPreRender) {
-                    const adjacentDate = new Date(currentDailyDate);
-                    if (deltaX < 0) { // Swiping left, so next day
-                        adjacentDate.setDate(adjacentDate.getDate() + 1);
-                        adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(${window.innerWidth}px)`);
-                        swipeDirection = -1;
-                    } else { // Swiping right, so previous day
-                        adjacentDate.setDate(adjacentDate.getDate() - 1);
-                        adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(-${window.innerWidth}px)`);
-                        swipeDirection = 1;
+                if (currentCalendarView === 'daily') {
+                    // Existing daily view logic
+                    if (currentDailyContentEl) {
+                        currentDailyContentEl.style.transform = `translateX(${deltaX}px)`;
                     }
-                    // Disable transition on adjacent element too for direct manipulation
+
+                    const minDeltaToPreRender = 20;
+                    if (!adjacentDailyContentEl && Math.abs(deltaX) > minDeltaToPreRender) {
+                        const adjacentDate = new Date(currentDailyDate);
+                        if (deltaX < 0) { // Swiping left, so next day
+                            adjacentDate.setDate(adjacentDate.getDate() + 1);
+                            adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(${window.innerWidth}px)`);
+                            swipeDirection = -1;
+                        } else { // Swiping right, so previous day
+                            adjacentDate.setDate(adjacentDate.getDate() - 1);
+                            adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(-${window.innerWidth}px)`);
+                            swipeDirection = 1;
+                        }
+                        if (adjacentDailyContentEl) {
+                            adjacentDailyContentEl.style.transition = 'none';
+                        }
+                    }
+
                     if (adjacentDailyContentEl) {
-                        adjacentDailyContentEl.style.transition = 'none';
+                        const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
+                        adjacentDailyContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
                     }
-                }
-
-                // If adjacent element exists, move it along with the current one
-                if (adjacentDailyContentEl) {
-                    const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
-                    adjacentDailyContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
+                } else if (currentCalendarView === 'monthly') {
+                    // New monthly view swipe logic
+                    if (calendarDaysEl) {
+                        calendarDaysEl.style.transform = `translateX(${deltaX}px)`;
+                    }
                 }
             }
         }, { passive: false }); // passive: false is crucial for preventDefault
 
         calendarContentWrapper.addEventListener('touchend', () => {
-            if (currentCalendarView === 'daily' && isMobileView() && isSwiping) {
+            if (isMobileView() && isSwiping) { // Apply to both daily and monthly if swiping
                 isSwiping = false;
                 const swipeThreshold = window.innerWidth / 3; // Swipe a third of the screen width
                 const swipeDistance = touchCurrentX - touchStartX;
 
-                if (currentDailyContentEl) {
-                    currentDailyContentEl.style.transition = 'transform 0.2s ease-out';
-                }
-                if (adjacentDailyContentEl) {
-                    adjacentDailyContentEl.style.transition = 'transform 0.2s ease-out';
-                }
-
-                if (Math.abs(swipeDistance) > swipeThreshold && adjacentDailyContentEl) {
-                    // Swipe successful
-                    if (swipeDirection === -1) { // Swiped left (next day)
-                        if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(-100%)';
-                        if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
-                        
-                        currentDailyDate.setDate(currentDailyDate.getDate() + 1); // Update date
-                    } else { // Swiped right (previous day)
-                        if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(100%)';
-                        if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
-
-                        currentDailyDate.setDate(currentDailyDate.getDate() - 1); // Update date
-                    }
-
-                    // Update header to reflect new date
-                    currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); // Changed to show month and year
-
-                    // Clean up old element after transition
+                if (currentCalendarView === 'daily') {
+                    // Existing daily view logic
                     if (currentDailyContentEl) {
-                        currentDailyContentEl.addEventListener('transitionend', function handler() {
-                            currentDailyContentEl.removeEventListener('transitionend', handler);
-                            if (currentDailyContentEl.parentNode) {
-                                currentDailyContentEl.parentNode.removeChild(currentDailyContentEl);
-                            }
-                            // The adjacentDailyContentEl becomes the new current
-                            currentDailyContentEl = adjacentDailyContentEl;
-                            adjacentDailyContentEl = null; // Clear adjacent
-                        }, { once: true });
+                        currentDailyContentEl.style.transition = 'transform 0.2s ease-out';
                     }
-                } else {
-                    // Snap back
-                    if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(0)';
                     if (adjacentDailyContentEl) {
-                        const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
-                        adjacentDailyContentEl.style.transform = `translateX(${initialAdjacentOffset}px)`;
-                        adjacentDailyContentEl.addEventListener('transitionend', function handler() {
-                            adjacentDailyContentEl.removeEventListener('transitionend', handler);
-                            if (adjacentDailyContentEl.parentNode) {
-                                adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                        adjacentDailyContentEl.style.transition = 'transform 0.2s ease-out';
+                    }
+
+                    if (Math.abs(swipeDistance) > swipeThreshold && adjacentDailyContentEl) {
+                        // Swipe successful
+                        if (swipeDirection === -1) { // Swiped left (next day)
+                            if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(-100%)';
+                            if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
+                            
+                            currentDailyDate.setDate(currentDailyDate.getDate() + 1); // Update date
+                        } else { // Swiped right (previous day)
+                            if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(100%)';
+                            if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
+
+                            currentDailyDate.setDate(currentDailyDate.getDate() - 1); // Update date
+                        }
+
+                        currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+                        if (currentDailyContentEl) {
+                            currentDailyContentEl.addEventListener('transitionend', function handler() {
+                                currentDailyContentEl.removeEventListener('transitionend', handler);
+                                if (currentDailyContentEl.parentNode) {
+                                    currentDailyContentEl.parentNode.removeChild(currentDailyContentEl);
+                                }
+                                currentDailyContentEl = adjacentDailyContentEl;
+                                adjacentDailyContentEl = null;
+                            }, { once: true });
+                        }
+                    } else {
+                        // Snap back
+                        if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(0)';
+                        if (adjacentDailyContentEl) {
+                            const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
+                            adjacentDailyContentEl.style.transform = `translateX(${initialAdjacentOffset}px)`;
+                            adjacentDailyContentEl.addEventListener('transitionend', function handler() {
+                                adjacentDailyContentEl.removeEventListener('transitionend', handler);
+                                if (adjacentDailyContentEl.parentNode) {
+                                    adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                                }
+                                adjacentDailyContentEl = null;
+                            }, { once: true });
+                        }
+                    }
+                } else if (currentCalendarView === 'monthly') {
+                    // New monthly view swipe logic
+                    if (calendarDaysEl) {
+                        calendarDaysEl.style.transition = 'transform 0.2s ease-out'; // Enable transition for snap/slide
+                    }
+
+                    if (Math.abs(swipeDistance) > swipeThreshold) {
+                        // Swipe successful, change month
+                        if (swipeDistance < 0) { // Swiped left (next month)
+                            calendarDaysEl.style.transform = 'translateX(-100%)';
+                            currentMonth++;
+                            if (currentMonth > 11) {
+                                currentMonth = 0;
+                                currentYear++;
                             }
-                            adjacentDailyContentEl = null;
-                        }, { once: true });
+                        } else { // Swiped right (previous month)
+                            calendarDaysEl.style.transform = 'translateX(100%)';
+                            currentMonth--;
+                            if (currentMonth < 0) {
+                                currentMonth = 11;
+                                currentYear--;
+                            }
+                        }
+                        // After the slide-out animation, reset transform and re-render the new month
+                        setTimeout(() => {
+                            if (calendarDaysEl) {
+                                calendarDaysEl.style.transition = 'none'; // Disable transition before snapping back
+                                calendarDaysEl.style.transform = 'translateX(0)'; // Snap back to original position
+                            }
+                            updateCalendarView(); // Render the new month
+                        }, 200); // Match CSS transition duration
+                    } else {
+                        // Swipe too short, snap back to original position
+                        if (calendarDaysEl) {
+                            calendarDaysEl.style.transform = 'translateX(0)';
+                        }
                     }
                 }
-                // Reset touch positions
+                // Reset touch positions for both views
                 touchStartX = 0;
                 touchCurrentX = 0;
                 swipeDirection = 0;
