@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personal Financial Tracker</title>
 
     <!-- Favicon for browsers -->
-    <link rel="icon" type="image/x-icon" href="https://img.icons8.com/ios-glyphs/60/FFFFFF/money-bag.png">
+    <link rel="icon" type="image/png" href="/icon-small.png">
+    <link rel="shortcut icon" type="image/png" href="/icon-small.png">
 
     <!-- Apple Touch Icon and Web App Meta Tags for iOS Home Screen -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Money Calendar">
     <!-- Explicitly specify size for apple-touch-icon -->
-    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-glyphs/30/FFFFFF/money-bag.png">
+    <link rel="apple-touch-icon" href="/icon-small.png" sizes="180x180">
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -382,12 +383,38 @@
 
         <!-- Tab Buttons -->
         <div class="tab-buttons">
-            <button class="tab-button active" data-tab="calendar">Calendar</button>
-            <button class="tab-button" data-tab="overview">Overview</button>
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="calendar">Calendar</button>
+        </div>
+
+        <!-- Overview Tab Content -->
+        <div id="overviewTabContent" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="overview-card flex flex-col items-center justify-center">
+                    <h3 class="text-center">Current Balance</h3>
+                    <p class="text-3xl font-bold"><span id="overviewCurrentBalance" class="value">£0.00</span></p>
+                    <button id="addTodayTransactionBtn" class="btn-primary px-3 py-1 text-sm mt-4">Add Transaction</button>
+                </div>
+                <div class="overview-card">
+                    <h3>Amount Available for Spending</h3>
+                    <p class="text-3xl font-bold"><span id="overviewLowestBalance" class="value">£0.00</span></p>
+                    <p class="text-sm text-gray-600">This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.</p>
+                </div>
+                <div class="overview-card md:col-span-2">
+                    <h3>Upcoming Payment</h3>
+                    <p id="overviewNextIncomeStatement" class="text-lg mb-2"></p>
+                </div>
+                <div class="overview-card md:col-span-2">
+                    <h3>Today's Transactions</h3>
+                    <div id="overviewTodaysTransactionsList" class="mt-4">
+                        <p class="text-gray-500 text-center py-4">No transactions for today.</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Calendar Tab Content -->
-        <div id="calendarTabContent" class="tab-content active">
+        <div id="calendarTabContent" class="tab-content">
             <!-- Calendar Header (Month/Year and Nav Buttons) - outside the scrolling area -->
             <div class="calendar-header mb-4 p-2">
                 <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start">&lt; Prev</button>
@@ -407,33 +434,6 @@
                     <!-- Calendar days will be generated here -->
                 </div>
                 <div id="calendarDays" class="calendar-grid mt-4"></div>
-            </div>
-        </div>
-
-        <!-- Overview Tab Content -->
-        <div id="overviewTabContent" class="tab-content">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="overview-card">
-                    <h3>Current Balance</h3>
-                    <p class="text-3xl font-bold"><span id="overviewCurrentBalance" class="value">£0.00</span></p>
-                </div>
-                <div class="overview-card">
-                    <h3>Next Income</h3>
-                    <p>Days until next income: <span id="overviewDaysUntilNextIncome" class="value">Calculating...</span></p>
-                    <p>Next income amount: <span id="overviewNextIncomeAmount" class="value">£0.00</span></p>
-                    <p>Next income date: <span id="overviewNextIncomeDate" class="value">N/A</span></p>
-                </div>
-                <div class="overview-card md:col-span-2">
-                    <h3>Lowest Balance until Next Income</h3>
-                    <p>Maximum for additional spending: <span id="overviewLowestBalance" class="value">£0.00</span></p>
-                    <p class="text-sm text-gray-600">This is the lowest your balance will drop before your next income. It indicates how much you can spend without going below this point.</p>
-                </div>
-                <div class="overview-card md:col-span-2">
-                    <h3>Today's Transactions</h3>
-                    <div id="overviewTodaysTransactionsList">
-                        <p class="text-gray-500 text-center py-4">No transactions for today.</p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -607,11 +607,10 @@
 
         // Overview Elements
         const overviewCurrentBalanceEl = document.getElementById('overviewCurrentBalance');
-        const overviewDaysUntilNextIncomeEl = document.getElementById('overviewDaysUntilNextIncome');
-        const overviewNextIncomeAmountEl = document.getElementById('overviewNextIncomeAmount');
-        const overviewNextIncomeDateEl = document.getElementById('overviewNextIncomeDate');
+        const overviewNextIncomeStatementEl = document.getElementById('overviewNextIncomeStatement'); // New element
         const overviewLowestBalanceEl = document.getElementById('overviewLowestBalance');
         const overviewTodaysTransactionsListEl = document.getElementById('overviewTodaysTransactionsList');
+        const addTodayTransactionBtn = document.getElementById('addTodayTransactionBtn'); // New button element
 
 
         let selectedDate = null; // Date of the day clicked on the calendar
@@ -1118,13 +1117,9 @@
 
             if (nextIncomeDate) {
                 const diffDays = Math.round((nextIncomeDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                overviewDaysUntilNextIncomeEl.textContent = diffDays;
-                overviewNextIncomeAmountEl.textContent = `£${nextIncomeAmount.toFixed(2)}`;
-                overviewNextIncomeDateEl.textContent = nextIncomeDate.toLocaleDateString('en-GB');
+                overviewNextIncomeStatementEl.textContent = `You will be paid £${nextIncomeAmount.toFixed(2)} in ${diffDays} day${diffDays === 1 ? '' : 's'}.`;
             } else {
-                overviewDaysUntilNextIncomeEl.textContent = 'N/A';
-                overviewNextIncomeAmountEl.textContent = '£0.00';
-                overviewNextIncomeDateEl.textContent = 'No future income found within 2 years.';
+                overviewNextIncomeStatementEl.textContent = 'No future income found within 2 years.';
             }
 
             overviewLowestBalanceEl.textContent = `£${lowestBalanceInPeriod.toFixed(2)}`;
@@ -1300,14 +1295,17 @@
             });
         });
 
+        // Event listener for the new "Add Today's Transaction" button
+        addTodayTransactionBtn.addEventListener('click', () => {
+            const today = new Date();
+            openAddTransactionModal(formatDate(today));
+        });
 
         // Initial render on page load
         document.addEventListener('DOMContentLoaded', () => {
-            renderCalendar();
-            toggleAddRepeatOptions(); // Set initial state for add modal repeat options
-            toggleEditRepeatOptions(); // Set initial state for edit modal repeat options
-            // Initially render the calendar tab
-            document.querySelector('.tab-button[data-tab="calendar"]').click();
+            // Initially render the overview tab
+            document.querySelector('.tab-button[data-tab="overview"]').click();
+            renderCalendar(); // Render calendar in background even if not visible
         });
     </script>
 </body>
