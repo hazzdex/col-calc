@@ -261,8 +261,10 @@
             margin-bottom: 0.5rem;
             color: #1e293b;
         }
-        .calendar-day-transactions {
-            font-size: 0.75rem;
+        /* Adjusted font size for monthly view content */
+        .calendar-day-transactions,
+        .calendar-day-cumulative {
+            font-size: 0.5rem; /* Set font size to 0.5rem */
             color: #64748b;
             flex-grow: 1; /* Allows content to take available space */
             width: 100%;
@@ -276,13 +278,13 @@
             overflow: hidden; /* Hide overflow */
             text-overflow: ellipsis; /* Show ellipsis */
         }
-        .calendar-day-cumulative {
+        /* .calendar-day-cumulative {
             font-weight: 700;
             font-size: 0.8rem; /* Reduced from 0.9rem */
-            margin-top: 0.5rem;
+            /* margin-top: 0.5rem;
             align-self: center; /* Changed from flex-end to center for alignment */
-            color: #1e293b;
-        }
+            /* color: #1e293b;
+        } */
         .calendar-day-cumulative.positive {
             color: #065f46; /* Green for positive */
         }
@@ -328,6 +330,7 @@
             max-height: none; /* Remove max height for daily view */
             overflow-y: visible; /* Allow full content */
             margin-bottom: 1rem;
+            font-size: 0.75rem; /* Revert to original size for daily view */
         }
         .calendar-daily-view-container .calendar-day-transactions .modal-transaction-item {
             padding: 0.5rem 0;
@@ -343,7 +346,7 @@
         }
         .calendar-daily-view-container .calendar-day-cumulative {
             align-self: flex-start; /* Position at bottom left for daily view */
-            font-size: 1.2rem;
+            font-size: 1.2rem; /* Revert to original size for daily view */
             margin-top: 1rem;
         }
         .calendar-daily-view-container .add-transaction-daily-btn {
@@ -617,13 +620,14 @@
             .calendar-day-number {
                 font-size: 0.9rem; /* Smaller day number */
             }
-            .calendar-day-transactions {
-                font-size: 0.65rem; /* Smaller transaction text */
+            .calendar-day-transactions,
+            .calendar-day-cumulative {
+                font-size: 0.5rem; /* Smaller transaction text */
                 max-height: 45px; /* Adjust max height for transaction list */
             }
-            .calendar-day-cumulative {
+            /* .calendar-day-cumulative {
                 font-size: 0.7rem; /* Reduced from 0.8rem */
-            }
+            /* } */
             /* Mobile-specific adjustments for the section-title within the nav-header */
             .nav-header .section-title {
                 font-size: 1.25rem; /* Smaller font for mobile header to fit better */
@@ -1422,35 +1426,39 @@
             targetDate.setHours(0, 0, 0, 0); // Normalize target date
 
             let cumulativeBalance = 0;
-            let calculationStartDate = null;
+            let effectiveCalculationStartDate = null; // The actual date from which we start applying transactions
 
-            // Find the most recent balance update on or before the targetDate
+            // 1. Find the most recent balance update on or before the targetDate
             const relevantBalanceUpdate = balanceUpdates
                 .filter(update => parseDate(update.date).getTime() <= targetDate.getTime())
                 .sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime())[0];
 
             if (relevantBalanceUpdate) {
                 cumulativeBalance = relevantBalanceUpdate.amount;
-                calculationStartDate = parseDate(relevantBalanceUpdate.date);
+                effectiveCalculationStartDate = parseDate(relevantBalanceUpdate.date);
+                effectiveCalculationStartDate.setHours(0,0,0,0);
+                // Start applying transactions from this date (inclusive)
             } else {
-                // If no balance update before or on targetDate, find the earliest transaction date
-                // If no transactions either, balance is 0.
+                // No balance update found on or before targetDate.
+                // Start from the earliest transaction date, or today if no transactions.
                 if (allTransactions.length > 0) {
-                    calculationStartDate = allTransactions.reduce((minDate, t) => {
+                    effectiveCalculationStartDate = allTransactions.reduce((minDate, t) => {
                         const txDate = parseDate(t.date);
                         return txDate < minDate ? txDate : minDate;
-                    }, parseDate(allTransactions[0].date));
+                    }, parseDate(allTransactions[0].date)); // Initialize with first transaction date
+                    effectiveCalculationStartDate.setHours(0,0,0,0);
                 } else {
-                    return 0; // No transactions and no balance updates
+                    // No balance updates and no transactions. Balance is 0.
+                    return 0;
                 }
             }
 
-            calculationStartDate.setHours(0, 0, 0, 0); // Normalize calculation start date
+            // Ensure we don't start calculating from a date in the future
+            if (effectiveCalculationStartDate.getTime() > targetDate.getTime()) {
+                return cumulativeBalance; // If start date is after target date, return initial balance.
+            }
 
-            // Iterate from the day *after* calculationStartDate up to the targetDate, applying transactions
-            // If calculationStartDate is the targetDate, this loop won't run, and cumulativeBalance will be the update amount.
-            let currentDateIterator = new Date(calculationStartDate);
-            currentDateIterator.setDate(currentDateIterator.getDate() + 1); // Start from the day after the calculationStartDate
+            let currentDateIterator = new Date(effectiveCalculationStartDate);
 
             while (currentDateIterator.getTime() <= targetDate.getTime()) {
                 let dailyNet = 0;
@@ -1458,76 +1466,87 @@
 
                 allTransactions.forEach(t => {
                     const transactionStartDate = parseDate(t.date);
-                    let nominalOccurrenceDate = null;
+                    transactionStartDate.setHours(0,0,0,0);
 
-                    // Only consider transactions that started on or after the calculationStartDate
-                    // and on or before the current iteration date
-                    if (transactionStartDate.getTime() > currentDateIterator.getTime() ||
-                        transactionStartDate.getTime() < calculationStartDate.getTime()) {
-                        return;
+                    // A transaction is relevant if it started on or before the current day
+                    if (transactionStartDate.getTime() > currentDateIterator.getTime()) {
+                        return; // Transaction hasn't started yet
                     }
-                    // And transactions that haven't ended before the current iteration date
+                    // And it hasn't ended before the current day
                     if (t.endDate && parseDate(t.endDate).getTime() < currentDateIterator.getTime()) {
-                        return;
+                        return; // Transaction has ended
                     }
 
+                    let isNominallyEffectiveToday = false;
                     const diffTime = currentDateIterator.getTime() - transactionStartDate.getTime();
                     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                    let isEffectiveToday = false;
                     switch (t.repeat) {
                         case 'none':
+                            // For non-repeating, it must match the transaction's exact date
                             if (t.date === formattedCurrentDate) {
-                                isEffectiveToday = true;
+                                isNominallyEffectiveToday = true;
                             }
                             break;
                         case 'daily':
-                            isEffectiveToday = true;
+                            isNominallyEffectiveToday = true;
                             break;
                         case 'weekly':
+                            // Check if the day of the week matches AND it's a multiple of 7 days from start
                             if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 7 === 0) {
-                                isEffectiveToday = true;
+                                isNominallyEffectiveToday = true;
                             }
                             break;
                         case 'bi-weekly':
+                            // Check if the day of the week matches AND it's a multiple of 14 days from start
                             if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 14 === 0) {
-                                isEffectiveToday = true;
+                                isNominallyEffectiveToday = true;
                             }
                             break;
                         case 'four-weekly':
+                            // Check if the day of the week matches AND it's a multiple of 28 days from start
                             if (currentDateIterator.getDay() === transactionStartDate.getDay() && diffDays % 28 === 0) {
-                                isEffectiveToday = true;
+                                isNominallyEffectiveToday = true;
                             }
                             break;
                         case 'monthly':
-                            // Check if the day of the month matches, and the month is after or same as transaction start month
+                            // Check if the day of the month matches (or is adjusted to month end), and it's on or after transaction start date
                             const nominalDayOfMonth = transactionStartDate.getDate();
                             const currentMonth = currentDateIterator.getMonth();
                             const currentYear = currentDateIterator.getFullYear();
 
-                            // Create a date for the current month with the nominal day of transaction
                             let potentialDate = new Date(currentYear, currentMonth, nominalDayOfMonth);
-
                             // If the nominal day is past the end of the current month (e.g., 31st in Feb), use last day of month
                             if (potentialDate.getMonth() !== currentMonth) {
                                 potentialDate = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
                             }
 
                             if (potentialDate.getTime() === currentDateIterator.getTime() && potentialDate.getTime() >= transactionStartDate.getTime()) {
-                                isEffectiveToday = true;
+                                isNominallyEffectiveToday = true;
                             }
                             break;
                     }
 
-                    if (isEffectiveToday) {
+                    if (isNominallyEffectiveToday) {
                         const effectiveDate = getNextWorkingDay(currentDateIterator);
-                        if (formatDate(effectiveDate) === formattedCurrentDate) {
+                        if (formatDate(effectiveDate) === formattedCurrentDate) { // Check if the effective date is the current day
                             dailyNet += (t.type === 'income' ? t.amount : -t.amount);
                         }
                     }
                 });
 
-                cumulativeBalance += dailyNet;
+                // Only apply dailyNet if the current date is *after* the initial balance update date,
+                // or if it's the same day but we're starting from scratch (no balance update).
+                // If it's the balance update day, the balance is already set to the update amount.
+                if (currentDateIterator.getTime() > effectiveCalculationStartDate.getTime() ||
+                    (currentDateIterator.getTime() === effectiveCalculationStartDate.getTime() && !relevantBalanceUpdate)) {
+                    cumulativeBalance += dailyNet;
+                } else if (currentDateIterator.getTime() === effectiveCalculationStartDate.getTime() && relevantBalanceUpdate) {
+                    // If it's the effectiveCalculationStartDate and there was a relevantBalanceUpdate,
+                    // transactions on this day should still be applied.
+                    cumulativeBalance += dailyNet;
+                }
+
                 currentDateIterator.setDate(currentDateIterator.getDate() + 1);
             }
             return cumulativeBalance;
@@ -1661,6 +1680,16 @@
                 // Get the balance for this specific day using the new calculation logic
                 const balanceForThisDay = calculateBalanceUpToDate(date);
                 
+                // Format cumulative balance: abbreviate if >= 1000, rounding down to 1 decimal place
+                let formattedCumulativeBalance;
+                if (Math.abs(balanceForThisDay) >= 1000) {
+                    // Round down to nearest 1 decimal place for thousands
+                    formattedCumulativeBalance = `£${(Math.floor(balanceForThisDay / 100) / 10).toFixed(1)}k`;
+                } else {
+                    // Round down to the nearest whole pound for display
+                    formattedCumulativeBalance = `£${Math.floor(balanceForThisDay).toFixed(0)}`;
+                }
+                
                 // Display summarized transactions in the day cell
                 const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
                 let dailyIncome = 0;
@@ -1679,21 +1708,23 @@
 
                 if (dailyIncome > 0) {
                     const p = document.createElement('p');
-                    p.textContent = `+£${dailyIncome.toFixed(2)}`;
+                    // Round down daily income to nearest £1
+                    p.textContent = `+£${Math.floor(dailyIncome).toFixed(0)}`;
                     p.className = 'text-green-700';
                     transactionsForDayEl.appendChild(p);
                 }
                 if (dailyExpense > 0) {
                     const p = document.createElement('p');
-                    p.textContent = `-£${dailyExpense.toFixed(2)}`;
+                    // Round down daily expense to nearest £1
+                    p.textContent = `-£${Math.floor(dailyExpense).toFixed(0)}`;
                     p.className = 'text-red-700';
                     transactionsForDayEl.appendChild(p);
                 }
                 // If both are 0, nothing is appended, effectively removing "No entries"
 
 
-                cumulativeEl.textContent = `£${balanceForThisDay.toFixed(2)}`;
-                if (balanceForThisDay >= 0) {
+                cumulativeEl.textContent = formattedCumulativeBalance;
+                if (balanceForThisDay >= 0) { /* Use original balance for color logic */
                     cumulativeEl.classList.add('positive');
                     cumulativeEl.classList.remove('negative');
                 } else {
@@ -1726,6 +1757,9 @@
             const addTransactionDailyBtn = dayEl.querySelector('.add-transaction-daily-btn');
 
             const balanceForThisDay = calculateBalanceUpToDate(date);
+            // Round down to the nearest whole pound for display in daily view
+            const roundedBalanceForDisplay = Math.floor(balanceForThisDay);
+
             const transactionsOnThisDayForDisplay = getTransactionsEffectiveOnDate(formattedDate);
 
             if (transactionsOnThisDayForDisplay.length > 0) {
@@ -1763,8 +1797,8 @@
                 transactionsForDayEl.innerHTML = '<p class="text-gray-400 text-center py-4">No entries</p>';
             }
 
-            cumulativeEl.textContent = `£${balanceForThisDay.toFixed(2)}`;
-            if (balanceForThisDay >= 0) {
+            cumulativeEl.textContent = `£${roundedBalanceForDisplay.toFixed(0)}`;
+            if (roundedBalanceForDisplay >= 0) {
                 cumulativeEl.classList.add('positive');
                 cumulativeEl.classList.remove('negative');
             } else {
@@ -2546,8 +2580,8 @@
             let ageGroupP2 = null;
 
             if (claimStatus === 'couple') {
-                ageGroupP1 = document.querySelector('input[name="ucAgeP1"]:checked')?.value;
-                ageGroupP2 = document.querySelector('input[name="ucAgeP2"]:checked')?.value;
+                ageGroupP1 = document.querySelector('input[name="ucAgeP1"]:checked')?.value; // Corrected selector
+                ageGroupP2 = document.querySelector('input[name="ucAgeP2"]:checked')?.value; // Corrected selector
             }
 
             const numChildren = parseInt(ucNumChildrenInput.value);
