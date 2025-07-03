@@ -600,7 +600,6 @@
 
         /* Responsive Calendar Adjustments for Monthly View on Mobile */
         @media (max-width: 767px) {
-            /* Changed from minmax(80px, 1fr) to 1fr to allow full flexibility */
             .calendar-grid-header-row,
             .calendar-grid-days {
                 grid-template-columns: repeat(7, 1fr); /* Force equal width columns on mobile */
@@ -1616,17 +1615,8 @@
             calendarGridHeaderRow.style.display = 'grid'; // Show header for monthly view
             calendarDaysEl.classList.remove('daily-view-active'); // Remove daily view container class
             
-            // Set grid for monthly view - responsive
-            if (isMobileView()) {
-                // Changed from minmax(80px, 1fr) to 1fr to allow full flexibility
-                calendarDaysEl.style.gridTemplateColumns = 'repeat(7, 1fr)'; 
-                calendarGridHeaderRow.style.gridTemplateColumns = 'repeat(7, 1fr)'; // Match header to days
-                calendarGridHeaderRow.style.gap = '0.4rem'; // Match header to days
-            } else {
-                calendarDaysEl.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Default for desktop
-                calendarGridHeaderRow.style.gridTemplateColumns = 'repeat(7, minmax(80px, 1fr))'; // Match header to days
-                calendarGridHeaderRow.style.gap = '0.5rem'; // Match header to days
-            }
+            // Removed dynamic grid-template-columns and gap setting from JS.
+            // This is now handled entirely by CSS media queries for consistency.
 
             currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
             prevMonthBtn.textContent = '< Prev';
