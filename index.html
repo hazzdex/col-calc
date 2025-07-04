@@ -337,7 +337,7 @@
         }
         .calendar-daily-view-container .calendar-day-transactions {
             max-height: 180px; /* Set a max height for the scrollable area */
-            overflow-y: auto; /* Enable vertical scrolling */
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
             margin-bottom: 1rem;
             font-size: 0.75rem; /* Revert to original size for daily view */
@@ -2831,7 +2831,14 @@
 
         addTransactionTypeInput.addEventListener('change', toggleAddRepeatOptions);
 
-        addTransactionBtn.addEventListener('click', () => {
+        // Unified function for adding a transaction
+        function handleAddTransaction(e) {
+            // Prevent default behavior for touch events
+            if (e.type === 'touchend') {
+                e.preventDefault();
+                e.stopPropagation(); // Stop event propagation for touch events
+            }
+
             // Explicitly blur the select element to ensure it loses focus
             addTransactionRepeatInput.blur();
 
@@ -2868,7 +2875,12 @@
             if (currentCalendarView === 'daily' && formatDate(currentDailyDate) === selectedDate) {
                 updateCalendarView();
             }
-        });
+        }
+
+        // Attach both click and touchend listeners to the add transaction button
+        addTransactionBtn.addEventListener('click', handleAddTransaction);
+        addTransactionBtn.addEventListener('touchend', handleAddTransaction);
+
 
         saveEditedTransactionBtn.addEventListener('click', () => {
             const newType = editTransactionTypeInput.value;
