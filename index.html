@@ -798,9 +798,11 @@
         <div id="calendarTabContent" class="tab-content">
             <!-- Calendar Header (Month/Year and Nav Buttons) -->
             <div class="calendar-header mb-4 p-2">
-                <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start">&lt; Prev</button>
+                <!-- Added md:block to show on medium screens and up, hidden by default on small screens -->
+                <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start hidden md:block">&lt; Prev</button>
                 <h2 id="currentMonthYear" class="text-xl font-semibold text-gray-800 text-center"></h2>
-                <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-end">Next &gt;</button>
+                <!-- Added md:block to show on medium screens and up, hidden by default on small screens -->
+                <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-end hidden md:block">Next &gt;</button>
             </div>
 
             <!-- Calendar View Toggle Switch -->
