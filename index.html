@@ -1778,7 +1778,7 @@
                     transactionsForDayEl.appendChild(div);
                 });
             } else {
-                transactionsForDayEl.innerHTML = '<p class="text-gray-400 text-center py-4">No entries</p>';
+                transactionsForDayEl.innerHTML = '<p class="text-gray-400 text-left py-4">No entries</p>'; // Changed to text-left
             }
 
             cumulativeEl.textContent = `£${roundedBalanceForDisplay.toFixed(0)}`;
@@ -1826,8 +1826,8 @@
                 // Render the current month directly into calendarDaysEl
                 renderCalendar(); // This function now directly populates calendarDaysEl
 
+                // Always display only month and year in the header
                 currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-                // No change to button text here
             } else { // daily view
                 // Clean up monthly view elements if switching from monthly
                 // The currentMonthContentEl is no longer used, as renderCalendar directly populates calendarDaysEl.
@@ -1842,9 +1842,8 @@
                 // Render the current day
                 currentDailyContentEl = renderDailyViewContent(currentDailyDate, calendarDaysEl);
 
-                // Update header
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); // Changed to show full date
-                // No change to button text here
+                // Update header to only show month and year
+                currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
             }
         }
 
@@ -1894,7 +1893,8 @@
                 currentDailyDate.setDate(currentDailyDate.getDate() - 1);
                 currentMonth = currentDailyDate.getMonth();
                 currentYear = currentDailyDate.getFullYear();
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); // Changed to show full date
+                // Always update header to only show month and year
+                currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
                 // Clean up old element after transition
                 if (currentDailyContentEl) {
                     currentDailyContentEl.addEventListener('transitionend', function handler() {
@@ -1940,7 +1940,8 @@
                 currentDailyDate.setDate(currentDailyDate.getDate() + 1);
                 currentMonth = currentDailyDate.getMonth();
                 currentYear = currentDailyDate.getFullYear();
-                currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); // Changed to show full date
+                // Always update header to only show month and year
+                currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
                 // Clean up old element after transition
                 if (currentDailyContentEl) {
@@ -2087,11 +2088,8 @@
                         }
 
                         // Update header text immediately for visual feedback
-                        if (currentCalendarView === 'daily') {
-                            currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-                        } else {
-                            currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-                        }
+                        // Always update header to only show month and year
+                        currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
                         // Clean up old element/re-render after transition completes
                         setTimeout(() => {
