@@ -36,16 +36,18 @@
         }
         .container {
             max-width: 1200px; /* Wider container for calendar */
-            margin: 2rem auto;
+            margin: 2rem auto; /* Default margin for desktop */
             padding: 1.5rem; /* Default padding */
             background-color: #ffffff;
             border-radius: 1rem; /* More rounded corners */
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Softer shadow */
         }
-        /* Responsive padding for container */
+        /* Responsive padding and margin for container */
         @media (max-width: 767px) { /* For screens smaller than md (768px) */
             .container {
                 padding: 1rem; /* Smaller padding on mobile */
+                margin-top: 1rem; /* Reduced top margin on mobile */
+                margin-bottom: 1rem; /* Reduced bottom margin on mobile */
             }
         }
         /* General section title style */
@@ -59,6 +61,7 @@
         /* Specific adjustments for section-title when it's part of the nav-header */
         .nav-header .section-title {
             margin-bottom: 0; /* Remove vertical margin when inside the header flex container */
+            text-align: center; /* Ensure it's centered on all screen sizes within the header */
         }
 
         /* Adjusted heading sizes */
@@ -443,6 +446,7 @@
         /* Tab styles */
         .tab-buttons {
             display: flex;
+            justify-content: center; /* Centered on desktop */
             margin-bottom: 1rem;
             border-bottom: 2px solid #e2e8f0;
         }
@@ -679,6 +683,7 @@
         /* Desktop: Tab buttons are always visible, hamburger is hidden */
         .tab-buttons {
             display: flex; /* Always flex on desktop */
+            justify-content: center; /* Centered on desktop */
             margin-bottom: 1rem;
             border-bottom: 2px solid #e2e8f0;
         }
@@ -726,7 +731,13 @@
 <body>
     <div class="container">
         <div class="nav-header">
-            <h1 class="section-title flex-grow text-left md:text-center">The Cost of Living Calculator</h1>
+            <!-- Updated title for mobile view with line break and centered alignment -->
+            <h1 class="section-title flex-grow text-center">
+                <span class="inline md:hidden">Cost of Living</span>
+                <span class="hidden md:inline">The Cost of Living</span>
+                <br class="md:hidden">
+                Calculator
+            </h1>
             <button id="menuToggleBtn" class="menu-toggle-btn">
                 <!-- Hamburger Icon SVG -->
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
