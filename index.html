@@ -1320,12 +1320,14 @@
         
         // No longer need currentMonthContentEl and adjacentMonthContentEl as calendarDaysEl is directly manipulated.
 
-
-        // Swipe tracking variables
+        // Swipe/Scroll gesture tracking variables
         let touchStartX = 0;
+        let touchStartY = 0; // New: Y-coordinate for touch start
         let touchCurrentX = 0;
-        let isSwiping = false;
-        let swipeDirection = 0; // -1 for right-to-left (next day/month), 1 for left-to-right (prev day/month)
+        let touchCurrentY = 0; // New: Y-coordinate for current touch
+        let isGestureActive = false; // New: True when a touch gesture is in progress
+        let gestureType = 'none'; // New: 'none', 'scroll', 'swipe'
+        const gestureThreshold = 10; // New: Minimum pixels to move to determine gesture type
 
         // Scrollbar width calculation for modal fix
         let scrollbarWidth = 0;
@@ -1946,178 +1948,189 @@
             }
         });
 
-        // Mobile swipe for daily view
+        // Mobile swipe/scroll gesture handling
         function isMobileView() {
             return window.innerWidth < 768; // Tailwind's 'md' breakpoint
         }
 
         calendarContentWrapper.addEventListener('touchstart', (e) => {
-            if (isMobileView()) { // Apply to both daily and monthly if swiping
+            if (isMobileView()) {
                 touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY; // Store initial Y
                 touchCurrentX = touchStartX;
-                isSwiping = true;
-                swipeDirection = 0; // Reset direction on start
-
+                touchCurrentY = touchStartY;
+                isGestureActive = true;
+                gestureType = 'none'; // Reset gesture type
+                
+                // Disable transitions at the start of any touch to allow direct manipulation
                 if (currentCalendarView === 'daily') {
-                    if (currentDailyContentEl) {
-                        currentDailyContentEl.style.transition = 'none'; // Disable transition
-                    }
-                    // Remove any lingering adjacent element for daily view
-                    if (adjacentDailyContentEl && adjacentDailyContentEl.parentNode) {
-                        adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
-                        adjacentDailyContentEl = null;
-                    }
+                    if (currentDailyContentEl) currentDailyContentEl.style.transition = 'none';
+                    if (adjacentDailyContentEl) adjacentDailyContentEl.style.transition = 'none'; // Ensure adjacent is also non-transitioning
                 } else if (currentCalendarView === 'monthly') {
-                    if (calendarDaysEl) { // Apply to the main calendarDaysEl for monthly view
-                        calendarDaysEl.style.transition = 'none'; // Disable transition during drag
-                    }
+                    if (calendarDaysEl) calendarDaysEl.style.transition = 'none';
                 }
             }
         }, { passive: false }); // passive: false is crucial for preventDefault
 
-
         calendarContentWrapper.addEventListener('touchmove', (e) => {
-            if (isMobileView() && isSwiping) { // Apply to both daily and monthly if swiping
-                e.preventDefault(); // Prevent page scrolling
-
+            if (isMobileView() && isGestureActive) {
                 touchCurrentX = e.touches[0].clientX;
+                touchCurrentY = e.touches[0].clientY;
                 const deltaX = touchCurrentX - touchStartX;
+                const deltaY = touchCurrentY - touchStartY;
 
-                if (currentCalendarView === 'daily') {
-                    // Existing daily view logic
-                    if (currentDailyContentEl) {
-                        currentDailyContentEl.style.transform = `translateX(${deltaX}px)`;
-                    }
-
-                    const minDeltaToPreRender = 20;
-                    if (!adjacentDailyContentEl && Math.abs(deltaX) > minDeltaToPreRender) {
-                        const adjacentDate = new Date(currentDailyDate);
-                        if (deltaX < 0) { // Swiping left, so next day
-                            adjacentDate.setDate(adjacentDate.getDate() + 1);
-                            adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(${window.innerWidth}px)`);
-                            swipeDirection = -1;
-                        } else { // Swiping right, so previous day
-                            adjacentDate.setDate(adjacentDate.getDate() - 1);
-                            adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(-${window.innerWidth}px)`);
-                            swipeDirection = 1;
+                if (gestureType === 'none') {
+                    // Determine gesture type after minimum movement
+                    if (Math.abs(deltaX) > gestureThreshold || Math.abs(deltaY) > gestureThreshold) {
+                        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                            gestureType = 'swipe';
+                            e.preventDefault(); // Prevent vertical scroll if it's a horizontal swipe
+                        } else {
+                            gestureType = 'scroll';
+                            // Do NOT preventDefault, allow native scrolling
                         }
-                        if (adjacentDailyContentEl) {
-                            adjacentDailyContentEl.style.transition = 'none';
-                        }
-                    }
-
-                    if (adjacentDailyContentEl) {
-                        const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
-                        adjacentDailyContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
-                    }
-                } else if (currentCalendarView === 'monthly') {
-                    // Monthly view swipe logic: apply transform directly to calendarDaysEl
-                    if (calendarDaysEl) {
-                        calendarDaysEl.style.transform = `translateX(${deltaX}px)`;
                     }
                 }
+
+                if (gestureType === 'swipe') {
+                    e.preventDefault(); // Ensure default is prevented for horizontal swipes
+
+                    if (currentCalendarView === 'daily') {
+                        if (currentDailyContentEl) {
+                            currentDailyContentEl.style.transform = `translateX(${deltaX}px)`;
+                        }
+
+                        // Pre-render adjacent day if not already rendered
+                        if (!adjacentDailyContentEl) {
+                            const adjacentDate = new Date(currentDailyDate);
+                            if (deltaX < 0) { // Swiping left, so next day
+                                adjacentDate.setDate(adjacentDate.getDate() + 1);
+                                adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(${window.innerWidth}px)`);
+                            } else { // Swiping right, so previous day
+                                adjacentDate.setDate(adjacentDate.getDate() - 1);
+                                adjacentDailyContentEl = renderDailyViewContent(adjacentDate, calendarDaysEl, `translateX(-${window.innerWidth}px)`);
+                            }
+                            if (adjacentDailyContentEl) {
+                                adjacentDailyContentEl.style.transition = 'none'; // Disable transition for the new element
+                            }
+                        }
+
+                        if (adjacentDailyContentEl) {
+                            const initialAdjacentOffset = (deltaX < 0) ? window.innerWidth : -window.innerWidth;
+                            adjacentDailyContentEl.style.transform = `translateX(${deltaX + initialAdjacentOffset}px)`;
+                        }
+                    } else if (currentCalendarView === 'monthly') {
+                        // Monthly view swipe logic: apply transform directly to calendarDaysEl
+                        if (calendarDaysEl) {
+                            calendarDaysEl.style.transform = `translateX(${deltaX}px)`;
+                        }
+                    }
+                }
+                // If gestureType is 'scroll', we do nothing here, letting the browser handle it.
             }
         }, { passive: false }); // passive: false is crucial for preventDefault
 
         calendarContentWrapper.addEventListener('touchend', () => {
-            if (isMobileView() && isSwiping) { // Apply to both daily and monthly if swiping
-                isSwiping = false;
+            if (isMobileView() && isGestureActive) {
+                isGestureActive = false;
                 const swipeThreshold = window.innerWidth / 3; // Swipe a third of the screen width
                 const swipeDistance = touchCurrentX - touchStartX;
 
+                // Re-enable transitions for snap-back/slide animations
                 if (currentCalendarView === 'daily') {
-                    // Existing daily view logic
-                    if (currentDailyContentEl) {
-                        currentDailyContentEl.style.transition = 'transform 0.2s ease-out';
-                    }
-                    if (adjacentDailyContentEl) {
-                        adjacentDailyContentEl.style.transition = 'transform 0.2s ease-out';
-                    }
+                    if (currentDailyContentEl) currentDailyContentEl.style.transition = 'transform 0.2s ease-out';
+                    if (adjacentDailyContentEl) adjacentDailyContentEl.style.transition = 'transform 0.2s ease-out';
+                } else if (currentCalendarView === 'monthly') {
+                    if (calendarDaysEl) calendarDaysEl.style.transition = 'transform 0.2s ease-out';
+                }
 
-                    if (Math.abs(swipeDistance) > swipeThreshold && adjacentDailyContentEl) {
+                if (gestureType === 'swipe') {
+                    if (Math.abs(swipeDistance) > swipeThreshold) {
                         // Swipe successful
-                        if (swipeDirection === -1) { // Swiped left (next day)
+                        if (swipeDistance < 0) { // Swiped left (next day/month)
                             if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(-100%)';
                             if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
-                            
-                            currentDailyDate.setDate(currentDailyDate.getDate() + 1); // Update date
-                        } else { // Swiped right (previous day)
+                            if (currentCalendarView === 'monthly' && calendarDaysEl) calendarDaysEl.style.transform = 'translateX(-100%)';
+
+                            if (currentCalendarView === 'daily') {
+                                currentDailyDate.setDate(currentDailyDate.getDate() + 1); // Update date
+                            } else { // monthly
+                                currentMonth++;
+                                if (currentMonth > 11) {
+                                    currentMonth = 0;
+                                    currentYear++;
+                                }
+                            }
+                        } else { // Swiped right (previous day/month)
                             if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(100%)';
                             if (adjacentDailyContentEl) adjacentDailyContentEl.style.transform = 'translateX(0)';
+                            if (currentCalendarView === 'monthly' && calendarDaysEl) calendarDaysEl.style.transform = 'translateX(100%)';
 
-                            currentDailyDate.setDate(currentDailyDate.getDate() - 1); // Update date
+                            if (currentCalendarView === 'daily') {
+                                currentDailyDate.setDate(currentDailyDate.getDate() - 1); // Update date
+                            } else { // monthly
+                                currentMonth--;
+                                if (currentMonth < 0) {
+                                    currentMonth = 11;
+                                    currentYear--;
+                                }
+                            }
                         }
 
-                        currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                        // Update header text immediately for visual feedback
+                        if (currentCalendarView === 'daily') {
+                            currentMonthYearEl.textContent = currentDailyDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                        } else {
+                            currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+                        }
 
-                        if (currentDailyContentEl) {
-                            currentDailyContentEl.addEventListener('transitionend', function handler() {
-                                currentDailyContentEl.removeEventListener('transitionend', handler);
-                                if (currentDailyContentEl.parentNode) {
+                        // Clean up old element/re-render after transition completes
+                        setTimeout(() => {
+                            if (currentCalendarView === 'daily') {
+                                if (currentDailyContentEl && currentDailyContentEl.parentNode) {
                                     currentDailyContentEl.parentNode.removeChild(currentDailyContentEl);
                                 }
                                 currentDailyContentEl = adjacentDailyContentEl;
                                 adjacentDailyContentEl = null;
-                            }, { once: true });
-                        }
-                    } else {
-                        // Snap back
-                        if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(0)';
-                        if (adjacentDailyContentEl) {
-                            const initialAdjacentOffset = (swipeDirection === -1) ? window.innerWidth : -window.innerWidth;
-                            adjacentDailyContentEl.style.transform = `translateX(${initialAdjacentOffset}px)`;
-                            adjacentDailyContentEl.addEventListener('transitionend', function handler() {
-                                adjacentDailyContentEl.removeEventListener('transitionend', handler);
-                                if (adjacentDailyContentEl.parentNode) {
-                                    adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                                // Reset transform for the new current element to ensure it's at 0
+                                if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(0)';
+                            } else { // monthly
+                                if (calendarDaysEl) {
+                                    calendarDaysEl.style.transition = 'none'; // Disable transition before snapping back
+                                    calendarDaysEl.style.transform = 'translateX(0)'; // Snap back to original position
                                 }
-                                adjacentDailyContentEl = null;
-                            }, { once: true });
-                        }
-                    }
-                } else if (currentCalendarView === 'monthly') {
-                    // Monthly view swipe logic: apply transform directly to calendarDaysEl
-                    if (calendarDaysEl) {
-                        calendarDaysEl.style.transition = 'transform 0.2s ease-out'; // Enable transition for snap/slide
-                    }
-
-                    if (Math.abs(swipeDistance) > swipeThreshold) {
-                        // Swipe successful, change month
-                        if (swipeDistance < 0) { // Swiped left (next month)
-                            if (calendarDaysEl) calendarDaysEl.style.transform = 'translateX(-100%)';
-                            currentMonth++;
-                            if (currentMonth > 11) {
-                                currentMonth = 0;
-                                currentYear++;
+                                updateCalendarView(); // Render the new month
                             }
-                        } else { // Swiped right (previous month)
-                            if (calendarDaysEl) calendarDaysEl.style.transform = 'translateX(100%)';
-                            currentMonth--;
-                            if (currentMonth < 0) {
-                                currentMonth = 11;
-                                currentYear--;
-                            }
-                        }
-                        // After the slide-out animation, reset transform and re-render the new month
-                        // This timeout ensures the visual slide-out completes before the content changes.
-                        setTimeout(() => {
-                            if (calendarDaysEl) {
-                                calendarDaysEl.style.transition = 'none'; // Disable transition before snapping back
-                                calendarDaysEl.style.transform = 'translateX(0)'; // Snap back to original position
-                            }
-                            updateCalendarView(); // Render the new month
                         }, 200); // Match CSS transition duration
                     } else {
                         // Swipe too short, snap back to original position
-                        if (calendarDaysEl) {
-                            calendarDaysEl.style.transform = 'translateX(0)';
+                        if (currentCalendarView === 'daily') {
+                            if (currentDailyContentEl) currentDailyContentEl.style.transform = 'translateX(0)';
+                            if (adjacentDailyContentEl) {
+                                const initialAdjacentOffset = (swipeDistance < 0) ? window.innerWidth : -window.innerWidth;
+                                adjacentDailyContentEl.style.transform = `translateX(${initialAdjacentOffset}px)`;
+                                // Remove adjacent element after it snaps back
+                                adjacentDailyContentEl.addEventListener('transitionend', function handler() {
+                                    adjacentDailyContentEl.removeEventListener('transitionend', handler);
+                                    if (adjacentDailyContentEl.parentNode) {
+                                        adjacentDailyContentEl.parentNode.removeChild(adjacentDailyContentEl);
+                                    }
+                                    adjacentDailyContentEl = null;
+                                }, { once: true });
+                            }
+                        } else { // monthly
+                            if (calendarDaysEl) {
+                                calendarDaysEl.style.transform = 'translateX(0)';
+                            }
                         }
                     }
                 }
-                // Reset touch positions for both views
+                // Reset gesture state
                 touchStartX = 0;
+                touchStartY = 0;
                 touchCurrentX = 0;
-                swipeDirection = 0;
+                touchCurrentY = 0;
+                gestureType = 'none';
             }
         });
 
