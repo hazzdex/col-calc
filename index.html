@@ -56,12 +56,12 @@
             font-weight: 700; /* Bold */
             color: #1e293b; /* Even darker title color */
             margin-bottom: 1.5rem; /* Default margin for when it's a standalone section title */
-            text-align: center; /* Default for desktop */
+            /* text-align: center; Removed, now controlled by utility classes on h1 */
         }
         /* Specific adjustments for section-title when it's part of the nav-header */
         .nav-header .section-title {
             margin-bottom: 0; /* Remove vertical margin when inside the header flex container */
-            text-align: center; /* Ensure it's centered on all screen sizes within the header */
+            /* text-align: center; Removed, now controlled by utility classes on h1 */
         }
 
         /* Adjusted heading sizes */
@@ -707,8 +707,8 @@
                 gap: 0.75rem; /* Space between buttons */
             }
             .mobile-nav-button {
-                background-color: #e0e7ff; /* Light indigo background for buttons (indigo-100) */
-                color: #6366f1; /* Dark purple text (from btn-primary) */
+                background-color: #6366f1; /* Indigo for buttons */
+                color: white; /* White text */
                 padding: 1rem 1.25rem;
                 border-radius: 0.75rem;
                 font-size: 1.1rem;
@@ -718,11 +718,11 @@
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             }
             .mobile-nav-button:hover {
-                background-color: #c7d2fe; /* Darker light indigo on hover (indigo-200) */
+                background-color: #4f46e5; /* Darker indigo on hover */
                 transform: translateY(-1px);
             }
             .mobile-nav-button.active {
-                background-color: #6366f1; /* Indigo for active button */
+                background-color: #4f46e5; /* Darker indigo for active button */
                 color: white;
             }
         }
@@ -732,7 +732,8 @@
     <div class="container">
         <div class="nav-header">
             <!-- Updated title for mobile view with line break and centered alignment -->
-            <h1 class="section-title flex-grow text-center">
+            <!-- Added text-left for mobile, md:text-center for desktop -->
+            <h1 class="section-title flex-grow text-left md:text-center">
                 <span class="inline md:hidden">Cost of Living</span>
                 <span class="hidden md:inline">The Cost of Living</span>
                 <br class="md:hidden">
@@ -804,7 +805,7 @@
                     <p id="overviewNextIncomeStatement" class="text-lg mb-2"></p>
                 </div>
                 <div class="overview-card md:col-span-2">
-                    <h3>Today'                    <h3>Today's Transactions</h3>
+                    <h3>Today's Transactions</h3>
                     <div id="overviewTodaysTransactionsList" class="mt-4">
                         <p class="text-gray-500 text-center py-4">No transactions for today.</p>
                     </div>
@@ -1006,6 +1007,7 @@
             
             <!-- Add New Transaction Form -->
             <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
+                <!-- Added mb-4 for spacing under the title -->
                 <h3 class="text-center mb-4">Add New Transaction for <span id="addModalDate" class="font-normal"></span></h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="input-group">
@@ -1148,7 +1150,7 @@
     <div id="mobileNavModal" class="modal">
         <div class="modal-content">
             <button class="modal-close-btn" id="closeMobileNavModalBtn">&times;</button>
-            <h2 class="text-center">Menu</h2> <!-- Changed title to "Menu" and added text-center -->
+            <!-- Removed h2 "Menu" -->
             <div class="mobile-nav-buttons">
                 <button class="mobile-nav-button" data-tab="getting-started">Getting Started</button>
                 <button class="mobile-nav-button" data-tab="overview">Overview</button>
