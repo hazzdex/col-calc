@@ -800,26 +800,26 @@
                     <p id="overviewLowestBalance" class="text-3xl font-bold">
                         <span class="value">£0.00</span>
                     </p>
-                    <p class="text-sm text-gray-600" id="lowestBalanceDescription">This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.</p>
+                    <p class="text-sm text-gray-600 text-left" id="lowestBalanceDescription">This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.</p>
                 </div>
                 <div class="overview-card md:col-span-2">
                     <h3>Upcoming Payment</h3>
-                    <p id="overviewNextIncomeStatement" class="text-lg mb-2"></p>
+                    <p id="overviewNextIncomeStatement" class="text-lg mb-2 text-left text-sm text-gray-600"></p>
                 </div>
-                <div class="overview-card md:col-span-2">
+                <!-- Updated grid for Today's Transactions and Monthly Income vs. Expenses -->
+                <div class="overview-card">
                     <h3>Today's Transactions</h3>
                     <div id="overviewTodaysTransactionsList" class="mt-4">
-                        <p class="text-gray-500 text-center py-4">No transactions for today.</p>
+                        <p class="text-gray-500 text-left py-4 text-sm">No transactions for today.</p>
                     </div>
                 </div>
-                <!-- New: Pie Chart for Income vs Expenses -->
-                <div class="overview-card md:col-span-2">
+                <div class="overview-card">
                     <h3>Monthly Income vs. Expenses</h3>
-                    <div id="pieChartContainer" class="relative w-full max-w-sm mx-auto">
-                        <canvas id="incomeExpensePieChart"></canvas>
-                        <div id="pieChartPlaceholder" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 rounded-lg text-gray-500 text-center p-4">
-                            No income or expense data for this month.<br>Add transactions to see your financial split!
-                        </div>
+                    <div id="pieChartContainer" class="relative w-full h-64"> <!-- Fixed height for chart container -->
+                        <canvas id="incomeExpensePieChart" class="w-full h-full"></canvas>
+                        <p id="pieChartDescription" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 rounded-lg text-gray-500 text-left p-4 text-sm">
+                            This chart illustrates the proportion of your income versus expenses for the current month. Add transactions to see your financial breakdown.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1270,7 +1270,7 @@
         const updateBalanceBtn = document.getElementById('updateBalanceBtn');
         // Chart elements
         const incomeExpensePieChartCanvas = document.getElementById('incomeExpensePieChart');
-        const pieChartPlaceholder = document.getElementById('pieChartPlaceholder');
+        const pieChartDescription = document.getElementById('pieChartDescription'); // Changed from pieChartPlaceholder
         let incomeExpensePieChartInstance = null; // To hold the Chart.js instance
 
 
@@ -2256,7 +2256,7 @@
             overviewTodaysTransactionsListEl.innerHTML = '';
             const todaysTransactions = getTransactionsEffectiveOnDate(todayFormatted);
             if (todaysTransactions.length === 0) {
-                overviewTodaysTransactionsListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No transactions for today.</p>';
+                overviewTodaysTransactionsListEl.innerHTML = '<p class="text-gray-500 text-left py-4 text-sm">No transactions for today.</p>';
             } else {
                 todaysTransactions.forEach(t => {
                     const div = document.createElement('div');
@@ -2361,48 +2361,7 @@
             let totalIncome = 0;
             let totalExpenses = 0;
 
-            transactions.forEach(t => {
-                const transactionStartDate = parseDate(t.date);
-                transactionStartDate.setHours(0, 0, 0, 0);
-
-                // Calculate for the current month only
-                if (transactionStartDate.getTime() >= currentMonthStart.getTime() && transactionStartDate.getTime() <= currentMonthEnd.getTime()) {
-                    if (t.type === 'income') {
-                        totalIncome += t.amount;
-                    } else {
-                        totalExpenses += t.amount;
-                    }
-                }
-                // For repeating transactions, we need to sum up their occurrences within the current month
-                // This is a simplified approach; a more robust solution would iterate through days of the month
-                // and use getTransactionsEffectiveOnDate for each day, summing up.
-                // For a basic pie chart, this direct sum from transaction start dates within the month is acceptable for now.
-                // A more accurate monthly summary for repeating transactions would be complex and might require
-                // iterating through each day of the month and summing up the effective transactions.
-                // For the purpose of a simple overview chart, we'll stick to transactions whose *start date* falls in the month.
-                // This might not be perfectly accurate for repeating transactions that started in a previous month
-                // but are still active in the current month.
-                // Let's refine this to iterate through days of the month for accuracy.
-
-                let tempDate = new Date(currentMonthStart);
-                while (tempDate.getTime() <= currentMonthEnd.getTime()) {
-                    const dailyTransactions = getTransactionsEffectiveOnDate(formatDate(tempDate));
-                    dailyTransactions.forEach(dt => {
-                        // Only count if the transaction's *start date* is not already within this month
-                        // to avoid double counting for non-repeating or monthly repeating transactions
-                        // whose start date is within the current month.
-                        // This logic needs to be careful to avoid double-counting.
-                        // A simpler approach for the pie chart is to sum up all effective income/expenses
-                        // for each day of the month.
-                    });
-                    tempDate.setDate(tempDate.getDate() + 1);
-                }
-            });
-
-            // Recalculate total income and expenses by iterating through each day of the current month
-            // to accurately include repeating transactions.
-            totalIncome = 0;
-            totalExpenses = 0;
+            // Iterate through each day of the current month to accurately sum up repeating transactions
             let dayIterator = new Date(currentMonthStart);
             while (dayIterator.getTime() <= currentMonthEnd.getTime()) {
                 const dailyTransactions = getTransactionsEffectiveOnDate(formatDate(dayIterator));
@@ -2416,16 +2375,15 @@
                 dayIterator.setDate(dayIterator.getDate() + 1);
             }
 
-
             if (totalIncome === 0 && totalExpenses === 0) {
-                pieChartPlaceholder.classList.remove('hidden');
+                pieChartDescription.classList.remove('hidden');
                 incomeExpensePieChartCanvas.classList.add('hidden');
                 if (incomeExpensePieChartInstance) {
                     incomeExpensePieChartInstance.destroy();
                     incomeExpensePieChartInstance = null;
                 }
             } else {
-                pieChartPlaceholder.classList.add('hidden');
+                pieChartDescription.classList.add('hidden');
                 incomeExpensePieChartCanvas.classList.remove('hidden');
 
                 if (incomeExpensePieChartInstance) {
@@ -2448,7 +2406,7 @@
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: true,
+                        maintainAspectRatio: false, // Set to false to allow container to define height
                         plugins: {
                             legend: {
                                 position: 'bottom',
