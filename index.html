@@ -190,7 +190,7 @@
         /* Calendar specific styles */
         .calendar-header {
             display: grid; /* Changed to grid */
-            grid-template-columns: 1fr auto 1fr; /* For centering title */
+            grid-template-columns: 1fr auto 1fr; /* For centering title on desktop */
             align-items: center;
             margin-bottom: 1rem;
             padding: 0.5rem 0;
@@ -341,6 +341,7 @@
             -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
             margin-bottom: 1rem;
             font-size: 0.75rem; /* Revert to original size for daily view */
+            text-align: left; /* Align text to the left for daily view transactions */
         }
         .calendar-daily-view-container .calendar-day-transactions .modal-transaction-item {
             padding: 0.5rem 0;
@@ -633,6 +634,12 @@
             #mobileNavModal .modal-content h2 {
                 font-size: 1.5rem; /* Keep consistent with other h2 */
             }
+
+            /* Calendar Header for Mobile (buttons hidden) */
+            .calendar-header {
+                grid-template-columns: auto; /* Only one column for the title */
+                justify-content: center; /* Center the title */
+            }
         }
 
         /* Navigation Menu Styles */
@@ -800,7 +807,7 @@
             <div class="calendar-header mb-4 p-2">
                 <!-- Added md:block to show on medium screens and up, hidden by default on small screens -->
                 <button id="prevMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-start hidden md:block">&lt; Prev</button>
-                <h2 id="currentMonthYear" class="text-xl font-semibold text-gray-800 text-center"></h2>
+                <h2 id="currentMonthYear" class="text-xl font-semibold text-gray-800 text-center flex-grow"></h2>
                 <!-- Added md:block to show on medium screens and up, hidden by default on small screens -->
                 <button id="nextMonthBtn" class="btn-secondary px-4 py-2 rounded-lg justify-self-end hidden md:block">Next &gt;</button>
             </div>
@@ -1721,9 +1728,9 @@
             dayEl.className = 'calendar-day today'; // Always highlight current day in daily view
             dayEl.dataset.date = formattedDate;
 
-            // Display full date in the day number area
+            // Display full date in the day number area, now including weekday
             dayEl.innerHTML = `
-                <div class="calendar-day-number">${date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                <div class="calendar-day-number">${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
                 <div class="calendar-day-transactions"></div>
                 <div class="calendar-day-cumulative"></div>
                 <button class="btn-primary">Add New Transaction</button> <!-- Changed class to btn-primary -->
@@ -2140,9 +2147,13 @@
         // --- Add Transaction Modal Logic ---
         function openAddTransactionModal(date) {
             selectedDate = date;
-            addModalDateEl.textContent = new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            addModalDateEl.textContent = new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); // Now includes weekday
             // renderAddModalTransactions(date); // Removed call to render existing transactions
             openModal(addTransactionModal); // Use generic open modal function
+            // Attempt to focus an input field to help with iOS PWA touch issues
+            setTimeout(() => { // Add a small delay to ensure modal is fully rendered
+                addTransactionNameInput.focus();
+            }, 100);
         }
 
         function closeAddModal() {
@@ -2880,16 +2891,11 @@
             transactions.push(newTransaction);
             localStorage.setItem('transactions', JSON.stringify(transactions));
             showMessage('Transaction added successfully!');
-            // renderAddModalTransactions(selectedDate); // Removed call to render existing transactions
-            // Clear form fields
-            addTransactionNameInput.value = '';
-            addTransactionAmountInput.value = '';
-            addTransactionRepeatInput.value = 'none';
-            toggleAddRepeatOptions();
             // After adding, re-render the daily view if it's currently active for the selected date
             if (currentCalendarView === 'daily' && formatDate(currentDailyDate) === selectedDate) {
                 updateCalendarView();
             }
+            closeAddModal(); // Close the modal automatically after adding a transaction
         }
 
         // Attach both click and touchend listeners to the add transaction button
