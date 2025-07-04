@@ -19,6 +19,8 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN for pie chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -707,18 +709,18 @@
                 gap: 0.75rem; /* Space between buttons */
             }
             .mobile-nav-button {
-                background-color: #6366f1; /* Indigo for buttons */
+                background-color: #6366f1; /* Indigo for buttons, matching btn-primary */
                 color: white; /* White text */
-                padding: 1rem 1.25rem;
-                border-radius: 0.75rem;
-                font-size: 1.1rem;
-                font-weight: 600;
+                padding: 0.75rem 1.5rem; /* Match btn-primary padding */
+                border-radius: 0.5rem; /* Match btn-primary border-radius */
+                font-size: 1rem; /* Match btn-primary font size */
+                font-weight: 600; /* Match btn-primary font weight */
                 text-align: center;
                 transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Match btn-primary shadow */
             }
             .mobile-nav-button:hover {
-                background-color: #4f46e5; /* Darker indigo on hover */
+                background-color: #4f46e5; /* Darker indigo on hover, matching btn-primary */
                 transform: translateY(-1px);
             }
             .mobile-nav-button.active {
@@ -808,6 +810,16 @@
                     <h3>Today's Transactions</h3>
                     <div id="overviewTodaysTransactionsList" class="mt-4">
                         <p class="text-gray-500 text-center py-4">No transactions for today.</p>
+                    </div>
+                </div>
+                <!-- New: Pie Chart for Income vs Expenses -->
+                <div class="overview-card md:col-span-2">
+                    <h3>Monthly Income vs. Expenses</h3>
+                    <div id="pieChartContainer" class="relative w-full max-w-sm mx-auto">
+                        <canvas id="incomeExpensePieChart"></canvas>
+                        <div id="pieChartPlaceholder" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 rounded-lg text-gray-500 text-center p-4">
+                            No income or expense data for this month.<br>Add transactions to see your financial split!
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1256,6 +1268,11 @@
         const lowestBalanceDescriptionEl = document.getElementById('lowestBalanceDescription');
         const overviewTodaysTransactionsListEl = document.getElementById('overviewTodaysTransactionsList');
         const updateBalanceBtn = document.getElementById('updateBalanceBtn');
+        // Chart elements
+        const incomeExpensePieChartCanvas = document.getElementById('incomeExpensePieChart');
+        const pieChartPlaceholder = document.getElementById('pieChartPlaceholder');
+        let incomeExpensePieChartInstance = null; // To hold the Chart.js instance
+
 
         // Update Balance Modal Elements
         const updateBalanceModal = document.getElementById('updateBalanceModal');
@@ -2330,6 +2347,135 @@
                 overviewLowestBalanceEl.classList.remove('positive', 'negative', 'text-3xl', 'font-bold'); // Remove previous styling
                 overviewLowestBalanceEl.classList.add('text-lg', 'text-gray-600', 'font-normal'); // Add new styling
                 lowestBalanceDescriptionEl.textContent = ""; // Clear this as the full message is in overviewLowestBalanceEl
+            }
+
+            // 5. Render Pie Chart
+            renderPieChart();
+        }
+
+        // --- Pie Chart Logic ---
+        function renderPieChart() {
+            const currentMonthStart = new Date(currentYear, currentMonth, 1);
+            const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
+
+            let totalIncome = 0;
+            let totalExpenses = 0;
+
+            transactions.forEach(t => {
+                const transactionStartDate = parseDate(t.date);
+                transactionStartDate.setHours(0, 0, 0, 0);
+
+                // Calculate for the current month only
+                if (transactionStartDate.getTime() >= currentMonthStart.getTime() && transactionStartDate.getTime() <= currentMonthEnd.getTime()) {
+                    if (t.type === 'income') {
+                        totalIncome += t.amount;
+                    } else {
+                        totalExpenses += t.amount;
+                    }
+                }
+                // For repeating transactions, we need to sum up their occurrences within the current month
+                // This is a simplified approach; a more robust solution would iterate through days of the month
+                // and use getTransactionsEffectiveOnDate for each day, summing up.
+                // For a basic pie chart, this direct sum from transaction start dates within the month is acceptable for now.
+                // A more accurate monthly summary for repeating transactions would be complex and might require
+                // iterating through each day of the month and summing up the effective transactions.
+                // For the purpose of a simple overview chart, we'll stick to transactions whose *start date* falls in the month.
+                // This might not be perfectly accurate for repeating transactions that started in a previous month
+                // but are still active in the current month.
+                // Let's refine this to iterate through days of the month for accuracy.
+
+                let tempDate = new Date(currentMonthStart);
+                while (tempDate.getTime() <= currentMonthEnd.getTime()) {
+                    const dailyTransactions = getTransactionsEffectiveOnDate(formatDate(tempDate));
+                    dailyTransactions.forEach(dt => {
+                        // Only count if the transaction's *start date* is not already within this month
+                        // to avoid double counting for non-repeating or monthly repeating transactions
+                        // whose start date is within the current month.
+                        // This logic needs to be careful to avoid double-counting.
+                        // A simpler approach for the pie chart is to sum up all effective income/expenses
+                        // for each day of the month.
+                    });
+                    tempDate.setDate(tempDate.getDate() + 1);
+                }
+            });
+
+            // Recalculate total income and expenses by iterating through each day of the current month
+            // to accurately include repeating transactions.
+            totalIncome = 0;
+            totalExpenses = 0;
+            let dayIterator = new Date(currentMonthStart);
+            while (dayIterator.getTime() <= currentMonthEnd.getTime()) {
+                const dailyTransactions = getTransactionsEffectiveOnDate(formatDate(dayIterator));
+                dailyTransactions.forEach(t => {
+                    if (t.type === 'income') {
+                        totalIncome += t.amount;
+                    } else {
+                        totalExpenses += t.amount;
+                    }
+                });
+                dayIterator.setDate(dayIterator.getDate() + 1);
+            }
+
+
+            if (totalIncome === 0 && totalExpenses === 0) {
+                pieChartPlaceholder.classList.remove('hidden');
+                incomeExpensePieChartCanvas.classList.add('hidden');
+                if (incomeExpensePieChartInstance) {
+                    incomeExpensePieChartInstance.destroy();
+                    incomeExpensePieChartInstance = null;
+                }
+            } else {
+                pieChartPlaceholder.classList.add('hidden');
+                incomeExpensePieChartCanvas.classList.remove('hidden');
+
+                if (incomeExpensePieChartInstance) {
+                    incomeExpensePieChartInstance.destroy(); // Destroy previous chart instance
+                }
+
+                const ctx = incomeExpensePieChartCanvas.getContext('2d');
+                incomeExpensePieChartInstance = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Income', 'Expenses'],
+                        datasets: [{
+                            data: [totalIncome, totalExpenses],
+                            backgroundColor: [
+                                '#6366f1', // Income (Indigo 500)
+                                '#a5b4fc'  // Expenses (Indigo 300)
+                            ],
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: {
+                                        size: 14,
+                                        family: 'Inter'
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += '£' + context.parsed.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
             }
         }
 
