@@ -54,7 +54,7 @@
         }
         /* General section title style */
         .section-title {
-            font-size: 1.75rem; /* Default larger size for desktop */
+            font-size: 2rem; /* Increased slightly */
             font-weight: 700; /* Bold */
             color: #1e293b; /* Even darker title color */
             margin-bottom: 1.5rem; /* Default margin for when it's a standalone section title */
@@ -72,6 +72,7 @@
             font-weight: 600;
             color: #1e293b;
             margin-bottom: 1rem;
+            text-align: left; /* Ensure left alignment for h2s */
         }
         h3 { /* Applies to: Current Balance, Amount Available..., Upcoming Payment, Today's Transactions, Existing Transactions, Add New Transaction, 1. Update Your Balance... */
             font-size: 1.25rem; /* text-lg */
@@ -186,10 +187,12 @@
             border-radius: 5px;
             z-index: 1000;
             opacity: 0;
+            visibility: hidden;
             transition: opacity 0.5s ease-in-out;
         }
         .message-box.show {
             opacity: 1;
+            visibility: visible; /* Ensure visibility when shown */
         }
 
         /* Calendar specific styles */
@@ -245,7 +248,7 @@
             transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
             position: relative; /* For cumulative total positioning */
             min-width: 0; /* Allow grid items to shrink */
-            box-sizing: border-box; /* Ensure padding/border included in width */
+            box-sizing: border-box; /* Include padding/border in width */
         }
         .calendar-day:hover {
             background-color: #eff6ff; /* Light blue on hover */
@@ -634,7 +637,7 @@
                 max-height: 45px; /* Adjust max height for transaction list */
             }
             .nav-header .section-title {
-                font-size: 1.25rem; /* Smaller font for mobile header to fit better */
+                font-size: 1.5rem; /* Slightly larger for mobile header */
             }
             /* Mobile modal heading sizes */
             #mobileNavModal .modal-content h2 {
@@ -734,12 +737,9 @@
     <div class="container">
         <div class="nav-header">
             <!-- Updated title for mobile view with line break and centered alignment -->
-            <!-- Added text-left for mobile, md:text-center for desktop -->
-            <h1 class="section-title flex-grow text-left md:text-center">
-                <span class="inline md:hidden">Cost of Living</span>
-                <span class="hidden md:inline">The Cost of Living</span>
-                <br class="md:hidden">
-                Calculator
+            <!-- Removed the line break for mobile and adjusted font size in CSS -->
+            <h1 class="section-title flex-grow text-center">
+                The Cost of Living Calculator
             </h1>
             <button id="menuToggleBtn" class="menu-toggle-btn">
                 <!-- Hamburger Icon SVG -->
@@ -776,7 +776,7 @@
 
             <div class="getting-started-section">
                 <h3>3. Estimate Your Pay (Pay Estimator Tab)</h3>
-                <p>If you want to understand your take-home pay, visit the **Pay Estimator** tab. Input your pay rate (hourly, daily, weekly, monthly, or annually) and frequency. The calculator will provide a breakdown of your estimated gross pay, National Insurance, and Income Tax deductions, giving you your net pay. You can then easily add this estimated net pay as an income transaction to your Calendar.</p>
+                <p>If you want to understand your take-home pay, visit the **Pay Estimator** tab. Input your pay rate (hourly, daily, weekly, monthly, or annually) and frequency. The calculator will provide a breakdown of your estimated gross pay, National Insurance, and Income Tax deductions, giving you your net pay. You can then easily add this estimated net pay as an "income" transaction to your Calendar.</p>
             </div>
 
             <div class="getting-started-section">
@@ -790,36 +790,56 @@
         <!-- Overview Tab Content -->
         <div id="overviewTabContent" class="tab-content active">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="overview-card flex flex-col items-center justify-center">
-                    <h3>Current Balance</h3>
-                    <p class="text-3xl font-bold"><span id="overviewCurrentBalance" class="value">£0.00</span></p>
-                    <button id="updateBalanceBtn" class="btn-primary px-3 py-1 text-sm mt-4">Update Balance</button>
-                </div>
-                <div class="overview-card">
-                    <h3>Amount Available for Spending</h3>
-                    <p id="overviewLowestBalance" class="text-3xl font-bold">
-                        <span class="value">£0.00</span>
-                    </p>
-                    <p class="text-sm text-gray-600 text-left" id="lowestBalanceDescription">This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.</p>
-                </div>
+                <!-- Combined Current Balance and Amount Available for Spending -->
                 <div class="overview-card md:col-span-2">
-                    <h3>Upcoming Payment</h3>
-                    <p id="overviewNextIncomeStatement" class="text-lg mb-2 text-left text-sm text-gray-600"></p>
-                </div>
-                <!-- Updated grid for Today's Transactions and Monthly Income vs. Expenses -->
-                <div class="overview-card">
-                    <h3>Today's Transactions</h3>
-                    <div id="overviewTodaysTransactionsList" class="mt-4">
-                        <p class="text-gray-500 text-left py-4 text-sm">No transactions for today.</p>
+                    <h3>Your Current Financial Snapshot</h3>
+                    <div class="flex flex-col gap-4"> <!-- New flex container for the balance rows -->
+                        <!-- Current Balance Row -->
+                        <div class="flex justify-between items-center w-full">
+                            <p class="text-xl text-left">
+                                <span class="font-semibold">Current Balance:</span> <span id="overviewCurrentBalance" class="value font-bold">£0.00</span>
+                            </p>
+                            <button id="updateBalanceBtn" class="btn-primary px-3 py-1 text-sm">Update Balance</button>
+                        </div>
+                        <!-- Amount Available Row -->
+                        <div class="text-left relative">
+                            <p class="inline-block">
+                                <span class="font-semibold">Amount Available:</span> <span id="overviewLowestBalance">£0.00</span>
+                            </p>
+                            <button id="amountAvailableHelpBtn" class="ml-2 text-indigo-500 hover:text-indigo-700 focus:outline-none absolute -top-1 md:relative md:top-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 inline-block align-middle">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="overview-card">
-                    <h3>Monthly Income vs. Expenses</h3>
-                    <div id="pieChartContainer" class="relative w-full h-64"> <!-- Fixed height for chart container -->
-                        <canvas id="incomeExpensePieChart" class="w-full h-full"></canvas>
-                        <p id="pieChartDescription" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 rounded-lg text-gray-500 text-left p-4 text-sm">
-                            This chart illustrates the proportion of your income versus expenses for the current month. Add transactions to see your financial breakdown.
-                        </p>
+
+                <div class="overview-card md:col-span-2">
+                    <h3>Upcoming Payment</h3>
+                    <!-- Added mt-4 for consistent spacing from h3 -->
+                    <p id="overviewNextIncomeStatement" class="text-sm text-gray-600 text-left mt-4"></p>
+                </div>
+
+                <!-- New grid for Today's Transactions and Monthly Income vs. Expenses -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
+                    <div class="overview-card">
+                        <h3>Today's Transactions</h3>
+                        <!-- Removed mt-4 from this div, added pt-0 to p inside for spacing control -->
+                        <div id="overviewTodaysTransactionsList">
+                            <!-- Changed py-4 to pt-0 for the p tag inside -->
+                            <p class="text-gray-500 text-left pt-0 text-sm">No transactions for today.</p>
+                        </div>
+                    </div>
+                    <div class="overview-card">
+                        <h3>Monthly Income vs. Expenses</h3>
+                        <div id="pieChartContainer" class="relative w-full h-64">
+                            <canvas id="incomeExpensePieChart" class="w-full h-full"></canvas>
+                            <!-- Removed px-6 pt-6 for alignment, inset-0 and flex properties handle positioning -->
+                            <p id="pieChartDescription" class="absolute inset-0 flex items-start justify-start bg-white bg-opacity-90 rounded-lg text-gray-500 text-left text-sm">
+                                This chart illustrates the proportion of your income versus expenses for the current month. Add transactions to see your financial breakdown.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1173,6 +1193,18 @@
         </div>
     </div>
 
+    <!-- Amount Available Help Modal -->
+    <div id="amountAvailableHelpModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeAmountAvailableHelpModalBtn">&times;</button>
+            <h2>Understanding 'Amount Available'</h2>
+            <div class="p-4 bg-gray-50 rounded-xl shadow-inner">
+                <p class="text-gray-700">This figure represents the lowest your projected balance will drop before your next expected income. It helps you understand how much you can comfortably spend without risking a negative balance before your next significant payment arrives.</p>
+                <p class="text-gray-700 mt-4">The calculation considers your current balance and all your upcoming expenses and incomes up to the point of your next anticipated income transaction (up to 2 years in the future). If no future income is found, it will prompt you to add one.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Message Box for notifications -->
     <div id="messageBox" class="message-box"></div>
 
@@ -1265,7 +1297,7 @@
         const overviewCurrentBalanceEl = document.getElementById('overviewCurrentBalance');
         const overviewNextIncomeStatementEl = document.getElementById('overviewNextIncomeStatement');
         const overviewLowestBalanceEl = document.getElementById('overviewLowestBalance');
-        const lowestBalanceDescriptionEl = document.getElementById('lowestBalanceDescription');
+        // const lowestBalanceDescriptionEl = document.getElementById('lowestBalanceDescription'); // Removed
         const overviewTodaysTransactionsListEl = document.getElementById('overviewTodaysTransactionsList');
         const updateBalanceBtn = document.getElementById('updateBalanceBtn');
         // Chart elements
@@ -1343,6 +1375,11 @@
         const mobileNavModal = document.getElementById('mobileNavModal');
         const closeMobileNavModalBtn = document.getElementById('closeMobileNavModalBtn');
         const mobileNavButtons = document.querySelectorAll('#mobileNavModal .mobile-nav-button'); // Select buttons inside mobile nav modal
+
+        // Amount Available Help Modal Elements
+        const amountAvailableHelpBtn = document.getElementById('amountAvailableHelpBtn');
+        const amountAvailableHelpModal = document.getElementById('amountAvailableHelpModal');
+        const closeAmountAvailableHelpModalBtn = document.getElementById('closeAmountAvailableHelpModalBtn');
 
 
         let selectedDate = null; // Date of the day clicked on the calendar
@@ -1853,11 +1890,72 @@
                 calendarDaysEl.style.transform = 'translateX(0)'; // Reset transform for monthly view container
                 calendarDaysEl.style.transition = 'none'; // Disable transition before new content is rendered
 
-                // Render the current month directly into calendarDaysEl
-                renderCalendar(); // This function now directly populates calendarDaysEl
-
-                // Always display only month and year in the header
                 currentMonthYearEl.textContent = new Date(currentYear, currentMonth).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+                // prevMonthBtn.textContent = '< Prev'; // Removed: Keep original text
+                // nextMonthBtn.textContent = 'Next >'; // Removed: Keep original text
+
+                const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+                const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth); // 0 (Sun) - 6 (Sat)
+
+                // Add blank days for the start of the month
+                for (let i = 0; i < firstDayIndex; i++) {
+                    const blankDay = document.createElement('div');
+                    blankDay.className = 'calendar-day inactive';
+                    calendarDaysEl.appendChild(blankDay);
+                }
+
+                const today = new Date();
+                const todayFormatted = formatDate(today);
+
+                // Add days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(currentYear, currentMonth, day);
+                    const formattedDate = formatDate(date);
+
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'calendar-day';
+                    dayEl.dataset.date = formattedDate;
+
+                    if (formattedDate === todayFormatted) {
+                        dayEl.classList.add('today');
+                    }
+
+                    // Only render cumulative balance in monthly view
+                    dayEl.innerHTML = `<div class="calendar-day-number">${day}</div><div class="calendar-day-cumulative"></div>`;
+
+                    const cumulativeEl = dayEl.querySelector('.calendar-day-cumulative');
+
+                    // Get the balance for this specific day using the new calculation logic
+                    const balanceForThisDay = calculateBalanceUpToDate(date);
+                    
+                    // Format cumulative balance: abbreviate if >= 1000, rounding down to 1 decimal place
+                    let formattedCumulativeBalance;
+                    if (Math.abs(balanceForThisDay) >= 1000) {
+                        // Round down to nearest 1 decimal place for thousands
+                        formattedCumulativeBalance = `£${(Math.floor(balanceForThisDay / 100) / 10).toFixed(1)}k`;
+                    } else {
+                        // Round down to the nearest whole pound for display
+                        formattedCumulativeBalance = `£${Math.floor(balanceForThisDay).toFixed(0)}`;
+                    }
+                    
+                    cumulativeEl.textContent = formattedCumulativeBalance;
+                    if (balanceForThisDay >= 0) { /* Use original balance for color logic */
+                        cumulativeEl.classList.add('positive');
+                        cumulativeEl.classList.remove('negative');
+                    } else {
+                        cumulativeEl.classList.add('negative');
+                        cumulativeEl.classList.remove('positive');
+                    }
+
+                    // Changed: Clicking a day in monthly view now opens daily view
+                    dayEl.addEventListener('click', () => {
+                        currentCalendarView = 'daily';
+                        currentDailyDate = date; // Set the clicked date as the current daily date
+                        calendarViewToggle.checked = true; // Update the toggle switch
+                        updateCalendarView(); // Re-render in daily view
+                    });
+                    calendarDaysEl.appendChild(dayEl);
+                }
             } else { // daily view
                 // Clean up monthly view elements if switching from monthly
                 // The currentMonthContentEl is no longer used, as renderCalendar directly populates calendarDaysEl.
@@ -2256,7 +2354,8 @@
             overviewTodaysTransactionsListEl.innerHTML = '';
             const todaysTransactions = getTransactionsEffectiveOnDate(todayFormatted);
             if (todaysTransactions.length === 0) {
-                overviewTodaysTransactionsListEl.innerHTML = '<p class="text-gray-500 text-left py-4 text-sm">No transactions for today.</p>';
+                // Changed py-4 to pt-0 for the p tag inside
+                overviewTodaysTransactionsListEl.innerHTML = '<p class="text-gray-500 text-left pt-0 text-sm">No transactions for today.</p>';
             } else {
                 todaysTransactions.forEach(t => {
                     const div = document.createElement('div');
@@ -2323,30 +2422,25 @@
                 const diffDays = Math.round((nextIncomeDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                 overviewNextIncomeStatementEl.textContent = `You will be paid £${nextIncomeAmount.toFixed(2)} in ${diffDays} day${diffDays === 1 ? '' : 's'}.`;
                 
-                // Display lowest balance if next income is found
-                overviewLowestBalanceEl.innerHTML = `<span class="value">£${lowestBalanceInPeriod.toFixed(2)}</span>`;
-                overviewLowestBalanceEl.classList.remove('positive', 'negative');
-                // Ensure the parent <p> tag has the correct styling for numerical value
-                overviewLowestBalanceEl.classList.add('text-3xl', 'font-bold');
-                overviewLowestBalanceEl.classList.remove('text-lg', 'text-gray-600', 'font-normal');
-
+                overviewLowestBalanceEl.textContent = `£${lowestBalanceInPeriod.toFixed(2)}`;
+                // Ensure value styling is applied
+                overviewLowestBalanceEl.classList.remove('text-sm', 'text-gray-600'); // Remove message styling
+                overviewLowestBalanceEl.classList.add('font-bold', 'text-xl'); // Add value styling
+                overviewLowestBalanceEl.style.fontSize = ''; // Remove inline font size if set
 
                 if (lowestBalanceInPeriod >= 0) {
                     overviewLowestBalanceEl.classList.add('positive');
                 } else {
                     overviewLowestBalanceEl.classList.add('negative');
                 }
-                lowestBalanceDescriptionEl.textContent = "This is the lowest your balance will drop before your next income. It indicates how much you can spend without impeding cash flow.";
-
             } else {
                 overviewNextIncomeStatementEl.textContent = 'No future income found within 2 years.';
                 
-                // Display message instead of negative balance, matching the style of "No future income found..."
-                // Set the <p> tag to have the desired styling for the message
-                overviewLowestBalanceEl.innerHTML = `Please provide your next expected income to see the funds that could be available.`;
-                overviewLowestBalanceEl.classList.remove('positive', 'negative', 'text-3xl', 'font-bold'); // Remove previous styling
-                overviewLowestBalanceEl.classList.add('text-lg', 'text-gray-600', 'font-normal'); // Add new styling
-                lowestBalanceDescriptionEl.textContent = ""; // Clear this as the full message is in overviewLowestBalanceEl
+                overviewLowestBalanceEl.textContent = `Please provide your next expected income to see the funds that could be available.`;
+                // Ensure message styling is applied
+                overviewLowestBalanceEl.classList.remove('font-bold', 'text-xl'); // Remove value styling
+                overviewLowestBalanceEl.classList.add('text-sm', 'text-gray-600'); // Add message styling
+                overviewLowestBalanceEl.style.fontSize = '1.1rem'; // Set custom font size
             }
 
             // 5. Render Pie Chart
@@ -3136,6 +3230,19 @@
                 switchTab(button.dataset.tab);
                 closeModal(mobileNavModal); // Close the modal after selecting a tab
             });
+        });
+
+        // Amount Available Help Modal Listeners
+        amountAvailableHelpBtn.addEventListener('click', () => {
+            openModal(amountAvailableHelpModal);
+        });
+        closeAmountAvailableHelpModalBtn.addEventListener('click', () => {
+            closeModal(amountAvailableHelpModal);
+        });
+        amountAvailableHelpModal.addEventListener('click', (e) => {
+            if (e.target === amountAvailableHelpModal) {
+                closeModal(amountAvailableHelpModal);
+            }
         });
 
 
