@@ -769,10 +769,18 @@
             .menu-toggle-btn {
                 display: flex; /* Show menu button on mobile */
             }
+            /* By default, tab buttons are visible on mobile */
             .tab-buttons {
-                display: none; /* Hide tab buttons on mobile */
+                display: flex; /* Show on mobile by default */
+                justify-content: center;
+                margin-bottom: 1rem;
+                border-bottom: 2px solid #e2e8f0;
             }
-            /* Mobile Navigation Modal specific styles */
+            /* Hide tab buttons when mobile menu is open */
+            body.mobile-menu-open .tab-buttons {
+                display: none;
+            }
+            /* Mobile modal heading sizes */
             #mobileNavModal .modal-content {
                 width: 90%;
                 max-width: 400px; /* Slightly narrower for mobile menu */
@@ -815,7 +823,7 @@
         <div class="nav-header">
             <!-- Reintroduced line break for mobile view -->
             <h1 class="section-title flex-grow text-center">
-                The Cost of Living Calculator
+                The Cost of Living<br class="md:hidden">Calculator
             </h1>
             <button id="menuToggleBtn" class="menu-toggle-btn">
                 <!-- Hamburger Icon SVG -->
@@ -1510,7 +1518,7 @@
         const ucAgeGroupCoupleDiv = document.getElementById('ucAgeGroupCouple');
         const ucAgeRadios = document.querySelectorAll('input[name="ucAge"]'); // For single claim
         const ucAgeP1Radios = document.querySelectorAll('input[name="ucAgeP1"]');
-        const ucAgeP2Radios = document.querySelectorAll('input[name="ucAgeP2"]'); // Fixed: Added missing " and )
+        const ucAgeP2Radios = document.querySelectorAll('input[name="ucAgeP2"]');
         const ucNumChildrenInput = document.getElementById('ucNumChildren');
         const ucChildBornBefore2017Checkbox = document.getElementById('ucChildBornBefore2017');
         const ucDisabilityStatusSelect = document.getElementById('ucDisabilityStatus');
@@ -1600,11 +1608,19 @@
             }
             document.body.style.paddingRight = `${scrollbarWidth}px`;
             document.body.classList.add('modal-open');
+            // Add mobile-menu-open class specifically for the mobile navigation modal
+            if (modalElement.id === 'mobileNavModal') {
+                document.body.classList.add('mobile-menu-open');
+            }
             modalElement.classList.add('show');
         }
 
         function closeModal(modalElement) {
             modalElement.classList.remove('show');
+            // Remove mobile-menu-open class specifically for the mobile navigation modal
+            if (modalElement.id === 'mobileNavModal') {
+                document.body.classList.remove('mobile-menu-open');
+            }
             document.body.classList.remove('modal-open');
             document.body.style.paddingRight = ''; // Reset padding
         }
@@ -1801,12 +1817,10 @@
                         while (currentNominalOccurrence.getTime() <= windowEnd.getTime()) {
                             // Stop if we've gone past the transaction's end date (if any)
                             if (t.endDate && currentNominalOccurrence.getTime() > parseDate(t.endDate).getTime()) {
-                                // console.log(`  NominalDate ${formatDate(currentNominalOccurrence)} is past transaction endDate ${t.endDate}. Breaking loop.`);
                                 break;
                             }
 
                             const effectiveDate = getEffectiveDateForNominalDate(t, currentNominalOccurrence);
-                            // console.log(`  Repeating: NominalDate=${formatDate(currentNominalOccurrence)}, EffectiveDate=${formatDate(effectiveDate)}`);
 
                             // If this effective date matches our target selectedDayDate
                             if (formatDate(effectiveDate) === formatDate(selectedDayDate)) {
@@ -1815,13 +1829,11 @@
                                     transactionCopy.name = `${t.name} (from ${currentNominalOccurrence.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`;
                                 }
                                 effectiveTransactions.push(transactionCopy);
-                                // console.log(`  Added repeating transaction (ID: ${t.id}) to effective list for ${dateString}.`);
                             }
 
                             // Move to the next nominal occurrence in the series
                             const next = getNextOccurrence(currentNominalOccurrence, t.repeat);
                             if (!next) {
-                                // console.log(`  getNextOccurrence returned null for ${formatDate(currentNominalOccurrence)} with repeat "${t.repeat}". Breaking loop.`);
                                 break;
                             }
                             currentNominalOccurrence = next;
@@ -1829,7 +1841,6 @@
                     }
                 }
             });
-            // console.log(`--- Finished processing for: ${dateString}. Found ${effectiveTransactions.length} effective transactions. ---`);
             return effectiveTransactions.sort((a, b) => a.name.localeCompare(b.name));
         }
 
