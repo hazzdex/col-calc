@@ -1372,16 +1372,8 @@
     <div id="messageBox" class="message-box"></div>
 
     <script>
-        console.log("Script execution started."); // Added for debugging
-        // Function to show a temporary message box
-        function showMessage(message, duration = 3000) {
-            const messageBox = document.getElementById('messageBox');
-            messageBox.textContent = message;
-            messageBox.classList.add('show');
-            setTimeout(() => {
-                messageBox.classList.remove('show');
-            }, duration);
-        }
+        // Global variable to keep track of the currently active tab
+        let currentActiveTabName = 'overview'; // Initialize with the default active tab
 
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
@@ -1617,6 +1609,8 @@
             // Remove mobile-menu-open class specifically for the mobile navigation modal
             if (modalElement.id === 'mobileNavModal') {
                 document.body.classList.remove('mobile-menu-open');
+                // After closing the mobile nav modal, explicitly re-activate the last active tab
+                switchTab(currentActiveTabName); // This is the key change to ensure tab content remains visible
             }
             document.body.classList.remove('modal-open');
             document.body.style.paddingRight = ''; // Reset padding
@@ -1750,15 +1744,11 @@
             const selectedDayDate = parseDate(dateString);
             selectedDayDate.setHours(0, 0, 0, 0);
 
-            // console.log(`--- getTransactionsEffectiveOnDateList called for: ${dateString} ---`);
-
             const effectiveTransactions = [];
 
             const validRepeatFrequencies = ['none', 'daily', 'weekly', 'bi-weekly', 'four-weekly', 'monthly'];
 
             transactions.forEach(t => {
-                // console.log(`Processing transaction: ID=${t.id}, Name="${t.name}", Repeat="${t.repeat}", StartDate="${t.date}", AdjustNonWorkingDays=${t.adjustForNonWorkingDays}, EndDate=${t.endDate}`);
-
                 if (!validRepeatFrequencies.includes(t.repeat)) {
                     console.warn(`Invalid repeat frequency "${t.repeat}" found for transaction ID: ${t.id}, Name: ${t.name}. Defaulting to 'none'.`);
                     t.repeat = 'none';
@@ -1782,14 +1772,12 @@
 
                 if (t.repeat === 'none') {
                     const effectiveDate = getEffectiveDateForNominalDate(t, transactionStartDate);
-                    // console.log(`  Non-repeating: NominalDate=${formatDate(transactionStartDate)}, EffectiveDate=${formatDate(effectiveDate)}`);
                     if (formatDate(effectiveDate) === formatDate(selectedDayDate)) {
                         const transactionCopy = { ...t };
                         if (formatDate(effectiveDate) !== formatDate(transactionStartDate)) {
                             transactionCopy.name = `${t.name} (from ${transactionStartDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`;
                         }
                         effectiveTransactions.push(transactionCopy);
-                        // console.log(`  Added non-repeating transaction (ID: ${t.id}) to effective list for ${dateString}.`);
                     }
                 } else {
                     // For repeating transactions, generate occurrences from the start date
@@ -3560,6 +3548,8 @@
 
         // Function to handle tab switching logic (used by both desktop and mobile nav)
         function switchTab(tabName) {
+            currentActiveTabName = tabName; // Update the global variable
+
             // Remove active class from all desktop tab buttons and hide all content
             desktopTabButtons.forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
