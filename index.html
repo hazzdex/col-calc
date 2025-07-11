@@ -166,7 +166,7 @@
             border: none;
             color: #3b82f6; /* Blue, matching btn-edit */
             cursor: pointer;
-            padding: 0.1rem; /* Adjusted padding as requested */
+            padding: 0.2rem; /* Small padding */
             border-radius: 0.3rem;
             transition: background-color 0.2s ease-in-out;
             display: inline-flex; /* Ensure it aligns well with text */
@@ -769,18 +769,10 @@
             .menu-toggle-btn {
                 display: flex; /* Show menu button on mobile */
             }
-            /* By default, tab buttons are visible on mobile */
             .tab-buttons {
-                display: flex; /* Show on mobile by default */
-                justify-content: center;
-                margin-bottom: 1rem;
-                border-bottom: 2px solid #e2e8f0;
+                display: none; /* Hide tab buttons on mobile */
             }
-            /* Hide tab buttons when mobile menu is open */
-            body.mobile-menu-open .tab-buttons {
-                display: none;
-            }
-            /* Mobile modal heading sizes */
+            /* Mobile Navigation Modal specific styles */
             #mobileNavModal .modal-content {
                 width: 90%;
                 max-width: 400px; /* Slightly narrower for mobile menu */
@@ -823,7 +815,7 @@
         <div class="nav-header">
             <!-- Reintroduced line break for mobile view -->
             <h1 class="section-title flex-grow text-center">
-                The Cost of Living<br class="md:hidden">Calculator
+                The Cost of Living Calculator
             </h1>
             <button id="menuToggleBtn" class="menu-toggle-btn">
                 <!-- Hamburger Icon SVG -->
@@ -1172,7 +1164,7 @@
                     <!-- Adjusted: Removed 'input-group' class from this div -->
                     <div class="md:col-span-2 mb-4 hidden" id="addAdjustForNonWorkingDaysGroup">
                         <label for="addAdjustForNonWorkingDays" class="flex items-center text-sm mb-1">
-                            <input type="checkbox" id="addAdjustForNonWorkingDays" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2">
+                            <input type="checkbox" id="addAdjustForNonWorkingDays" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2" checked>
                             Adjust for Weekends/Bank Holidays
                         </label>
                         <p class="text-xs text-gray-500 mt-1">If checked, future payments will shift to the next working day if they fall on a weekend or bank holiday.</p>
@@ -1348,8 +1340,7 @@
                 <p class="mb-6 text-lg">How would you like to delete this transaction?</p>
                 <div class="flex flex-col gap-4">
                     <button id="deleteThisEventOnlyBtn" class="btn-primary">Delete This Event Only</button>
-                    <!-- Updated class from btn-delete to btn-primary -->
-                    <button id="deleteThisAndFutureEventsBtn" class="btn-primary">Delete This and All Future Events</button>
+                    <button id="deleteThisAndFutureEventsBtn" class="btn-delete">Delete This and All Future Events</button>
                 </div>
                 <button id="closeDeleteConfirmationModalBtn" class="btn-secondary w-full mt-4">Close</button>
             </div>
@@ -1542,8 +1533,8 @@
         const modalEstimatedUcPaymentSpan = document.getElementById('modalEstimatedUcPayment');
         const nextUcPayDateInput = document.getElementById('nextUcPayDateInput');
         const confirmUcFrequencySelect = document.getElementById('confirmUcFrequencySelect');
+        // Corrected: Ensure confirmAddUcBtn is properly selected
         const confirmAddUcBtn = document.getElementById('confirmAddUcBtn'); 
-        const closeConfirmUcAddModalBtn = document.getElementById('closeConfirmUcAddModalBtn'); // Corrected: Ensure this is selected
 
         const calendarViewToggle = document.getElementById('calendarViewToggle'); // New toggle switch element
         const menuToggleBtn = document.getElementById('menuToggleBtn'); // New menu toggle button
@@ -1564,7 +1555,7 @@
         const deleteThisEventOnlyBtn = document.getElementById('deleteThisEventOnlyBtn');
         const deleteThisAndFutureEventsBtn = document.getElementById('deleteThisAndFutureEventsBtn');
 
-        // New: Clear All Transactions Confirmation Modal
+        // New: Clear All Transactions Confirmation Modal Elements
         const clearTransactionsConfirmModal = document.getElementById('clearTransactionsConfirmModal');
         // Removed closeClearTransactionsConfirmModalBtn as per user request
         const confirmClearTransactionsYesBtn = document.getElementById('confirmClearTransactionsYesBtn');
@@ -1608,19 +1599,11 @@
             }
             document.body.style.paddingRight = `${scrollbarWidth}px`;
             document.body.classList.add('modal-open');
-            // Add mobile-menu-open class specifically for the mobile navigation modal
-            if (modalElement.id === 'mobileNavModal') {
-                document.body.classList.add('mobile-menu-open');
-            }
             modalElement.classList.add('show');
         }
 
         function closeModal(modalElement) {
             modalElement.classList.remove('show');
-            // Remove mobile-menu-open class specifically for the mobile navigation modal
-            if (modalElement.id === 'mobileNavModal') {
-                document.body.classList.remove('mobile-menu-open');
-            }
             document.body.classList.remove('modal-open');
             document.body.style.paddingRight = ''; // Reset padding
         }
@@ -1753,94 +1736,72 @@
             const selectedDayDate = parseDate(dateString);
             selectedDayDate.setHours(0, 0, 0, 0);
 
-            // console.log(`--- getTransactionsEffectiveOnDateList called for: ${dateString} ---`);
-
             const effectiveTransactions = [];
 
-            const validRepeatFrequencies = ['none', 'daily', 'weekly', 'bi-weekly', 'four-weekly', 'monthly'];
-
             transactions.forEach(t => {
-                // console.log(`Processing transaction: ID=${t.id}, Name="${t.name}", Repeat="${t.repeat}", StartDate="${t.date}", AdjustNonWorkingDays=${t.adjustForNonWorkingDays}, EndDate=${t.endDate}`);
-
-                if (!validRepeatFrequencies.includes(t.repeat)) {
-                    console.warn(`Invalid repeat frequency "${t.repeat}" found for transaction ID: ${t.id}, Name: ${t.name}. Defaulting to 'none'.`);
-                    t.repeat = 'none';
-                }
-
                 const transactionStartDate = parseDate(t.date);
-                transactionStartDate.setHours(0,0,0,0);
+                transactionStartDate.setHours(0, 0, 0, 0);
 
-                // Define a window around the selectedDayDate to check for nominal occurrences
-                // that might shift *to* selectedDayDate.
-                // We need to check nominal dates up to 10 days prior and 10 days after,
-                // to account for potential shifts (e.g., Sat/Sun -> Mon, or multiple bank holidays).
-                const windowStart = new Date(selectedDayDate);
-                windowStart.setDate(windowStart.getDate() - 10);
-                windowStart.setHours(0,0,0,0);
+                // Define a reasonable window to check for nominal occurrences that might shift *to* selectedDayDate.
+                // Max shift is typically a few days (Sat/Sun -> Mon, or a bank holiday).
+                // We need to iterate from a point before the selectedDayDate to catch these shifts.
+                const checkWindowStart = new Date(selectedDayDate);
+                checkWindowStart.setDate(checkWindowStart.getDate() - 7); // Check nominal dates up to 7 days prior
 
-                const windowEnd = new Date(selectedDayDate);
-                windowEnd.setDate(windowEnd.getDate() + 10);
-                windowEnd.setHours(0,0,0,0);
+                // Start iterating from the transaction's actual start date, or from the beginning of our check window,
+                // whichever is later. This ensures we don't process too many past occurrences unnecessarily.
+                let currentNominalDate = new Date(Math.max(transactionStartDate.getTime(), checkWindowStart.getTime()));
+                currentNominalDate.setHours(0,0,0,0);
+                
+                // The loop should go until the nominal date is past the selectedDayDate, plus enough days
+                // to cover any potential forward shifts (e.g., a transaction on selectedDayDate itself shifting forward).
+                const loopUntilDate = new Date(selectedDayDate);
+                loopUntilDate.setDate(loopUntilDate.getDate() + 7); // Iterate slightly past to catch transactions that shift from selectedDayDate to future
 
-
-                if (t.repeat === 'none') {
-                    const effectiveDate = getEffectiveDateForNominalDate(t, transactionStartDate);
-                    // console.log(`  Non-repeating: NominalDate=${formatDate(transactionStartDate)}, EffectiveDate=${formatDate(effectiveDate)}`);
-                    if (formatDate(effectiveDate) === formatDate(selectedDayDate)) {
-                        const transactionCopy = { ...t };
-                        if (formatDate(effectiveDate) !== formatDate(transactionStartDate)) {
-                            transactionCopy.name = `${t.name} (from ${transactionStartDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`;
-                        }
-                        effectiveTransactions.push(transactionCopy);
-                        // console.log(`  Added non-repeating transaction (ID: ${t.id}) to effective list for ${dateString}.`);
-                    }
-                } else {
-                    // For repeating transactions, generate occurrences from the start date
-                    let currentNominalOccurrence = new Date(transactionStartDate);
-                    currentNominalOccurrence.setHours(0,0,0,0);
-
-                    // Advance currentNominalOccurrence until it's at or before the windowStart,
-                    // ensuring we don't miss any occurrences that might shift into our window.
-                    // This loop finds the *first* nominal occurrence that could potentially be relevant.
-                    while (currentNominalOccurrence.getTime() < windowStart.getTime()) {
-                        const next = getNextOccurrence(currentNominalOccurrence, t.repeat);
-                        // If no next occurrence or it's past the transaction's end date, break
-                        if (!next || (t.endDate && next.getTime() > parseDate(t.endDate).getTime())) {
-                            currentNominalOccurrence = null;
-                            break;
-                        }
-                        currentNominalOccurrence = next;
+                while (currentNominalDate.getTime() <= loopUntilDate.getTime()) {
+                    // Stop if we've gone past the transaction's end date (if any)
+                    if (t.endDate && currentNominalDate.getTime() > parseDate(t.endDate).getTime()) {
+                        break;
                     }
 
-                    if (currentNominalOccurrence) { // If we found a starting point within or before the window
-                        // Now iterate through nominal occurrences within and slightly beyond the window
-                        while (currentNominalOccurrence.getTime() <= windowEnd.getTime()) {
-                            // Stop if we've gone past the transaction's end date (if any)
-                            if (t.endDate && currentNominalOccurrence.getTime() > parseDate(t.endDate).getTime()) {
-                                break;
-                            }
-
-                            const effectiveDate = getEffectiveDateForNominalDate(t, currentNominalOccurrence);
-
-                            // If this effective date matches our target selectedDayDate
+                    // For non-repeating transactions, only check the exact start date
+                    if (t.repeat === 'none') {
+                        if (formatDate(currentNominalDate) === formatDate(transactionStartDate)) {
+                            const effectiveDate = getEffectiveDateForNominalDate(t, currentNominalDate);
                             if (formatDate(effectiveDate) === formatDate(selectedDayDate)) {
                                 const transactionCopy = { ...t };
-                                if (formatDate(effectiveDate) !== formatDate(currentNominalOccurrence)) {
-                                    transactionCopy.name = `${t.name} (from ${currentNominalOccurrence.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+                                if (formatDate(effectiveDate) !== formatDate(currentNominalDate)) {
+                                    transactionCopy.name = `${t.name} (from ${currentNominalDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`;
                                 }
                                 effectiveTransactions.push(transactionCopy);
                             }
-
-                            // Move to the next nominal occurrence in the series
-                            const next = getNextOccurrence(currentNominalOccurrence, t.repeat);
-                            if (!next) {
-                                break;
-                            }
-                            currentNominalOccurrence = next;
                         }
+                        break; // Non-repeating transaction, so only one check needed
                     }
+
+                    // For repeating transactions:
+                    const effectiveDate = getEffectiveDateForNominalDate(t, currentNominalDate);
+
+                    // If this effective date matches our target date
+                    if (formatDate(effectiveDate) === formatDate(selectedDayDate)) {
+                        // Create a copy to avoid modifying the original transaction object in `transactions` array
+                        const transactionCopy = { ...t };
+
+                        // If the effective date is different from the nominal date, it means it was shifted.
+                        // Add a note to the name for display.
+                        if (formatDate(effectiveDate) !== formatDate(currentNominalDate)) {
+                            transactionCopy.name = `${t.name} (from ${currentNominalDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+                        }
+                        effectiveTransactions.push(transactionCopy);
+                    }
+
+                    // Move to the next nominal occurrence
+                    const next = getNextOccurrence(currentNominalDate, t.repeat);
+                    if (!next) break; // No more occurrences
+                    currentNominalDate = next;
                 }
             });
+
             return effectiveTransactions.sort((a, b) => a.name.localeCompare(b.name));
         }
 
@@ -2524,7 +2485,7 @@
             addTransactionNameInput.value = '';
             addTransactionAmountInput.value = '';
             addTransactionRepeatInput.value = 'none';
-            addAdjustForNonWorkingDaysCheckbox.checked = false; // Default to unchecked
+            addAdjustForNonWorkingDaysCheckbox.checked = true; // Default to checked
             addTransactionEndDateInput.value = ''; // Clear end date
             toggleAddRepeatOptions(); // Initial toggle to set visibility
         }
@@ -2536,7 +2497,7 @@
             addTransactionNameInput.value = '';
             addTransactionAmountInput.value = '';
             addTransactionRepeatInput.value = 'none';
-            addAdjustForNonWorkingDaysCheckbox.checked = false; // Reset to default unchecked
+            addAdjustForNonWorkingDaysCheckbox.checked = true; // Reset to default checked
             addTransactionEndDateInput.value = ''; // Reset end date
             selectedDate = null;
             toggleAddRepeatOptions(); // Ensure repeat options are hidden for next open if not recurring
@@ -2571,8 +2532,8 @@
             editTransactionNameInput.value = originalTx.name;
             editTransactionAmountInput.value = originalTx.amount;
             editTransactionRepeatInput.value = originalTx.repeat;
-            // Ensure adjustForNonWorkingDays is set, default to false if undefined (for old transactions)
-            editAdjustForNonWorkingDaysCheckbox.checked = originalTx.adjustForNonWorkingDays !== undefined ? originalTx.adjustForNonWorkingDays : false;
+            // Ensure adjustForNonWorkingDays is set, default to true if undefined (for old transactions)
+            editAdjustForNonWorkingDaysCheckbox.checked = originalTx.adjustForNonWorkingDays !== undefined ? originalTx.adjustForNonWorkingDays : true;
             editTransactionEndDateInput.value = originalTx.endDate || ''; // Set end date
 
             toggleEditRepeatOptions(); // Adjust repeat options visibility
@@ -2659,8 +2620,9 @@
                 const transactionStartDate = parseDate(t.date);
                 transactionStartDate.setHours(0,0,0,0);
 
+                // For non-repeating transactions, just add if it's in the future
                 if (t.repeat === 'none') {
-                    const effectiveDate = getEffectiveDateForNominalDate(t, transactionStartDate);
+                    const effectiveDate = getEffectiveDateForNominalDate(t, transactionStartDate); // Get effective date for single transaction
                     if (effectiveDate.getTime() > today.getTime() && effectiveDate.getTime() <= lookaheadEndDate.getTime()) {
                         financialEvents.push({
                             date: effectiveDate,
@@ -2670,43 +2632,44 @@
                         });
                     }
                 } else {
-                    let currentNominalOccurrence = new Date(transactionStartDate);
-                    currentNominalOccurrence.setHours(0,0,0,0);
+                    // For repeating transactions, generate occurrences
+                    let currentNominalDate = new Date(transactionStartDate);
+                    currentNominalDate.setHours(0,0,0,0);
 
-                    // Advance currentNominalOccurrence until it's at or after today
-                    // This ensures we start generating future occurrences from the correct point.
-                    while (currentNominalOccurrence.getTime() < today.getTime()) {
-                        const next = getNextOccurrence(currentNominalOccurrence, t.repeat);
-                        if (!next || (t.endDate && next.getTime() > parseDate(t.endDate).getTime())) {
-                            currentNominalOccurrence = null;
-                            break;
-                        }
-                        currentNominalOccurrence = next;
-                    }
-
-                    if (currentNominalOccurrence) { // If there's a starting point today or in the future
-                        while (currentNominalOccurrence.getTime() <= lookaheadEndDate.getTime()) {
-                            if (t.endDate && currentNominalOccurrence.getTime() > parseDate(t.endDate).getTime()) {
+                    // Start generating from today or the transaction's start date, whichever is later
+                    // This ensures we only consider future occurrences for the lookahead.
+                    if (currentNominalDate.getTime() < today.getTime()) {
+                        while (currentNominalDate.getTime() < today.getTime()) {
+                            const next = getNextOccurrence(currentNominalDate, t.repeat);
+                            if (!next || (t.endDate && parseDate(t.endDate).getTime() < next.getTime())) {
+                                currentNominalDate = null; // No more occurrences in the past or beyond end date
                                 break;
                             }
+                            currentNominalDate = next;
+                        }
+                    }
+                    
+                    if (currentNominalDate) { // If there's a starting point today or in the future
+                        while (currentNominalDate.getTime() <= lookaheadEndDate.getTime()) {
+                            if (t.endDate && currentNominalDate.getTime() > parseDate(t.endDate).getTime()) {
+                                break; // Past end date
+                            }
 
-                            const effectiveDate = getEffectiveDateForNominalDate(t, currentNominalOccurrence);
+                            const effectiveDate = getEffectiveDateForNominalDate(t, currentNominalDate);
 
                             // Only add if the effective date is within the lookahead and is not today (already handled by currentBalance)
-                            // The condition `effectiveDate.getTime() > today.getTime()` correctly filters out today's transactions
-                            // which are already factored into the initial `runningBalance`.
                             if (effectiveDate.getTime() > today.getTime() && effectiveDate.getTime() <= lookaheadEndDate.getTime()) {
                                 financialEvents.push({
                                     date: effectiveDate,
                                     type: t.type,
                                     amount: t.amount,
-                                    name: t.name
+                                    name: t.name // Use original name here, display name handled by getTransactionsEffectiveOnDateList
                                 });
                             }
 
-                            const next = getNextOccurrence(currentNominalOccurrence, t.repeat);
-                            if (!next) break;
-                            currentNominalOccurrence = next;
+                            const next = getNextOccurrence(currentNominalDate, t.repeat);
+                            if (!next) break; // No more occurrences
+                            currentNominalDate = next;
                         }
                     }
                 }
@@ -3107,8 +3070,7 @@
                 date: selectedNextPayDate, // Use the date from the modal
                 repeat: confirmedFrequency, // Use the frequency from the modal
                 adjustForNonWorkingDays: true, // Default to true for estimated pay
-                endDate: null,
-                parentId: null // New transaction, no parent
+                endDate: null
             };
 
             transactions.push(newTransaction);
@@ -3301,8 +3263,7 @@
                     date: selectedNextUcPayDate,
                     repeat: confirmedFrequency,
                     adjustForNonWorkingDays: true, // Default to true for estimated UC
-                    endDate: null,
-                    parentId: null // New transaction, no parent
+                    endDate: null
                 };
 
                 transactions.push(newTransaction);
@@ -3318,8 +3279,9 @@
 
         // Close button for confirm UC add modal
         // Corrected: Add null check for closeConfirmUcAddModalBtn
-        if (closeConfirmUcAddModalBtn) {
-            closeConfirmUcAddModalBtn.addEventListener('click', () => closeModal(confirmUcAddModal));
+        const closeConfirmUcAddModalBtnEl = document.getElementById('closeConfirmUcAddModalBtn');
+        if (closeConfirmUcAddModalBtnEl) {
+            closeConfirmUcAddModalBtnEl.addEventListener('click', () => closeModal(confirmUcAddModal));
         }
         
         confirmUcAddModal.addEventListener('click', (e) => {
@@ -3454,8 +3416,7 @@
                 date: selectedDate, // Date of first occurrence
                 repeat,
                 adjustForNonWorkingDays, // Save the adjustForNonWorkingDays setting
-                endDate, // Save the end date
-                parentId: null // New transaction, no parent
+                endDate // Save the end date
             };
 
             transactions.push(newTransaction);
@@ -3472,32 +3433,6 @@
         addTransactionBtn.addEventListener('click', handleAddTransaction);
         addTransactionBtn.addEventListener('touchend', handleAddTransaction);
 
-        /**
-         * Traces back the parentId chain to find the original root transaction ID.
-         * @param {number} txId - The ID of the transaction to start tracing from.
-         * @returns {number|null} The ID of the root transaction, or null if not found.
-         */
-        function findRootTransactionId(txId) {
-            let currentTx = transactions.find(t => t.id === txId);
-            if (!currentTx) return null; // Transaction not found
-
-            let rootId = currentTx.id;
-            let parentId = currentTx.parentId;
-
-            // Keep tracing back until parentId is null or we can't find the parent
-            while (parentId !== null) {
-                const parentTx = transactions.find(t => t.id === parentId);
-                if (!parentTx) {
-                    // Parent not found, something is wrong with the chain, return current root
-                    console.warn(`Parent transaction with ID ${parentId} not found for transaction ID ${currentTx.id}.`);
-                    break;
-                }
-                rootId = parentTx.id; // Move up the chain
-                parentId = parentTx.parentId;
-                currentTx = parentTx; // Update currentTx to the parent for the next iteration
-            }
-            return rootId;
-        }
 
         saveEditedTransactionBtn.addEventListener('click', () => {
             const newType = editTransactionTypeInput.value;
@@ -3532,7 +3467,6 @@
                 originalTx.repeat = newRepeat;
                 originalTx.adjustForNonWorkingDays = newAdjustForNonWorkingDays; // Update property
                 originalTx.endDate = newEndDate;
-                // ParentId remains the same (or null) as it's not a split *from* this transaction
                 showMessage('Changes applied to this event and all future events.');
             } else {
                 // Editing a future instance of a recurring transaction - split it
@@ -3550,8 +3484,7 @@
                     date: editingTransactionInstanceDate, // New repeating transaction starts from here
                     repeat: newRepeat,
                     adjustForNonWorkingDays: newAdjustForNonWorkingDays, // Carry over new property
-                    endDate: newEndDate, // Carry over the new end date
-                    parentId: originalTx.id // Set parentId to link it to the original series
+                    endDate: newEndDate // Carry over the new end date
                 };
                 transactions.push(newRepeatingTx);
                 showMessage('Changes applied to this event and all future events (transaction split).');
@@ -3692,7 +3625,6 @@
                     // Update the original transaction to start from its next occurrence
                     originalTx.date = formatDate(nextValidOccurrenceDate);
                     // The original end date remains the same
-                    // ParentId remains the same as it's still the "root" of this branch
                     showMessage('This event deleted. Future events will continue from the next occurrence.');
                 } else {
                     // If there's no next occurrence (e.g., monthly repeat where next month doesn't have the day, or end date is too soon after this instance)
@@ -3719,8 +3651,7 @@
                         date: formatDate(newRepeatingTxStartDate), // New series starts from the next occurrence
                         repeat: originalTx.repeat,
                         adjustForNonWorkingDays: originalTx.adjustForNonWorkingDays,
-                        endDate: originalTxSeriesEndDate, // IMPORTANT: Carry over the original series end date
-                        parentId: originalTx.parentId || originalTx.id // Link new series to its parent (or original if no parent)
+                        endDate: originalTxSeriesEndDate // IMPORTANT: Carry over the original series end date
                     };
                     transactions.push(newRepeatingTx);
                     showMessage('This event deleted. Future events will continue after this date (transaction split).');
@@ -3737,64 +3668,24 @@
         });
 
         deleteThisAndFutureEventsBtn.addEventListener('click', () => {
-            const clickedTx = transactions.find(tx => tx.id === transactionToDeleteId);
-            if (!clickedTx) {
-                showMessage('Error: Transaction not found.');
-                return;
+            const originalTx = transactions.find(tx => tx.id === transactionToDeleteId);
+            if (originalTx) {
+                const instanceDate = parseDate(transactionToDeleteInstanceDate);
+                const originalTxStartDate = parseDate(originalTx.date);
+
+                if (formatDate(originalTxStartDate) === formatDate(instanceDate)) {
+                    // If deleting the first instance, remove the transaction entirely
+                    transactions = transactions.filter(tx => tx.id !== transactionToDeleteId);
+                    showMessage('Transaction and all future occurrences deleted!');
+                } else {
+                    // If deleting a future instance, end the original transaction before this instance
+                    const newOriginalTxEndDate = new Date(instanceDate);
+                    newOriginalTxEndDate.setDate(newOriginalTxEndDate.getDate() - 1); // End original one day before instance date
+                    originalTx.endDate = formatDate(newOriginalTxEndDate);
+                    showMessage('Transaction and all future occurrences deleted!');
+                }
             }
-
-            const instanceDate = parseDate(transactionToDeleteInstanceDate);
-            // Find the root ID of the clicked transaction's series
-            const rootId = findRootTransactionId(clickedTx.id);
-
-            // Filter out transactions that should be deleted or have their end date adjusted
-            const updatedTransactions = transactions.filter(tx => {
-                // Check if this 'tx' is part of the same logical recurring series
-                let isRelated = false;
-                let currentCheckTx = tx;
-                while (currentCheckTx) {
-                    if (currentCheckTx.id === rootId) {
-                        isRelated = true;
-                        break;
-                    }
-                    if (currentCheckTx.parentId) {
-                        currentCheckTx = transactions.find(t => t.id === currentCheckTx.parentId);
-                    } else {
-                        break;
-                    }
-                }
-                
-                // If the transaction is not related to the root series, keep it.
-                // Also, if the transaction IS the root, but it's not the one we clicked, we need to handle it.
-                if (!isRelated && tx.id !== rootId) {
-                    return true; 
-                }
-
-                const txStartDate = parseDate(tx.date);
-
-                // Logic for related transactions:
-                // If the transaction starts AFTER the instance date of the one we're deleting, remove it.
-                if (txStartDate.getTime() > instanceDate.getTime()) {
-                    return false; // Filter out
-                }
-                
-                // If the transaction starts ON or BEFORE the instance date, we might need to adjust its end date.
-                // This applies to the original series that the clicked instance belongs to.
-                // We only modify the end date if the transaction's current end date is after the new proposed end date
-                // (or if it has no end date).
-                if (tx.id === clickedTx.id || (isRelated && txStartDate.getTime() <= instanceDate.getTime())) {
-                    const newProposedEndDate = formatDate(new Date(instanceDate.setDate(instanceDate.getDate() - 1)));
-                    if (!tx.endDate || parseDate(tx.endDate).getTime() > parseDate(newProposedEndDate).getTime()) {
-                        tx.endDate = newProposedEndDate;
-                    }
-                }
-                
-                return true; // Keep the transaction (potentially with modified endDate)
-            });
-
-            transactions = updatedTransactions;
             localStorage.setItem('transactions', JSON.stringify(transactions));
-            showMessage('Transaction and all future occurrences deleted!');
             closeModal(deleteConfirmationModal);
             updateCalendarView();
             renderOverview();
