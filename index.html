@@ -1372,6 +1372,16 @@
     <div id="messageBox" class="message-box"></div>
 
     <script>
+        // --- Message Box Function ---
+        function showMessage(message, duration = 3000) {
+            const messageBox = document.getElementById('messageBox');
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, duration);
+        }
+
         // Global variable to keep track of the currently active tab
         let currentActiveTabName = 'overview'; // Initialize with the default active tab
 
@@ -1592,6 +1602,7 @@
 
         // Generic modal open/close functions to handle scrollbar shift
         function openModal(modalElement) {
+            console.log(`[openModal] Opening modal: ${modalElement.id}. Current active tab: ${currentActiveTabName}`);
             if (scrollbarWidth === 0) {
                 scrollbarWidth = getScrollbarWidth();
             }
@@ -1602,18 +1613,30 @@
                 document.body.classList.add('mobile-menu-open');
             }
             modalElement.classList.add('show');
+            console.log(`[openModal] Modal ${modalElement.id} opened. Body classes: ${document.body.classList}`);
         }
 
         function closeModal(modalElement) {
+            console.log(`[closeModal] Attempting to close modal: ${modalElement.id}. Current active tab before removing 'show': ${currentActiveTabName}`);
+            
+            const activeTabContentBefore = document.getElementById(currentActiveTabName + 'TabContent');
+            if (activeTabContentBefore) {
+                console.log(`[closeModal] Before removing 'show', active tab (${activeTabContentBefore.id}) has 'active' class: ${activeTabContentBefore.classList.contains('active')}, display: ${activeTabContentBefore.style.display}`);
+            }
+
             modalElement.classList.remove('show');
-            // Remove mobile-menu-open class specifically for the mobile navigation modal
             if (modalElement.id === 'mobileNavModal') {
                 document.body.classList.remove('mobile-menu-open');
-                // After closing the mobile nav modal, explicitly re-activate the last active tab
-                switchTab(currentActiveTabName); // This is the key change to ensure tab content remains visible
+                console.log(`[closeModal] MobileNavModal closed. No tab switch triggered.`);
             }
             document.body.classList.remove('modal-open');
             document.body.style.paddingRight = ''; // Reset padding
+            console.log(`[closeModal] Modal ${modalElement.id} closed. Body classes: ${document.body.classList}`);
+
+            const activeTabContentAfter = document.getElementById(currentActiveTabName + 'TabContent');
+            if (activeTabContentAfter) {
+                console.log(`[closeModal] After removing 'show', active tab (${activeTabContentAfter.id}) has 'active' class: ${activeTabContentAfter.classList.contains('active')}, display: ${activeTabContentAfter.style.display}`);
+            }
         }
 
 
@@ -3401,7 +3424,7 @@
             localStorage.setItem('balanceUpdates', JSON.stringify(balanceUpdates));
 
             showMessage('Balance updated successfully!');
-            closeUpdateBalanceModal();
+            closeUpdateBalanceModal(); // Close the modal after successful update
         });
 
 
@@ -3548,22 +3571,43 @@
 
         // Function to handle tab switching logic (used by both desktop and mobile nav)
         function switchTab(tabName) {
+            console.log(`[switchTab] Initiating tab switch to: '${tabName}'. Current active tab: '${currentActiveTabName}'`);
             currentActiveTabName = tabName; // Update the global variable
 
-            // Remove active class from all desktop tab buttons and hide all content
+            // Remove active class from all desktop tab buttons
             desktopTabButtons.forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            // Remove active class from all mobile nav buttons
+            mobileNavButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none'; // Explicitly hide
+            });
+
 
             // Add active class to the corresponding desktop button (if it exists)
             const targetDesktopButton = document.querySelector(`#desktopTabButtons .tab-button[data-tab="${tabName}"]`);
             if (targetDesktopButton) {
                 targetDesktopButton.classList.add('active');
+                console.log(`[switchTab] Desktop tab button for '${tabName}' activated.`);
             }
             
-            // Show corresponding content
+            // Add active class to the corresponding mobile nav button (if it exists)
+            const targetMobileButton = document.querySelector(`#mobileNavModal .mobile-nav-button[data-tab="${tabName}"]`);
+            if (targetMobileButton) {
+                targetMobileButton.classList.add('active');
+                console.log(`[switchTab] Mobile nav button for '${tabName}' activated.`);
+            }
+
+            // Show corresponding content and log its state
             const targetTabContent = document.getElementById(tabName + 'TabContent');
             if (targetTabContent) {
                 targetTabContent.classList.add('active');
+                targetTabContent.style.display = 'block'; // Explicitly show
+                console.log(`[switchTab] Activated content for: ${targetTabContent.id}. New classList: ${targetTabContent.classList.value}, new display: ${targetTabContent.style.display}`);
+            } else {
+                console.warn(`[switchTab] Could not find content for tab: ${tabName}TabContent`);
             }
 
             // Perform tab-specific rendering/initialization
@@ -3602,20 +3646,30 @@
         // Close mobile nav modal button (old X button removed)
         mobileNavModal.addEventListener('click', (e) => {
             if (e.target === mobileNavModal) { // Close if clicked outside content
+                console.log(`[mobileNavModal overlay click] Overlay clicked. currentActiveTabName: ${currentActiveTabName}`);
                 closeModal(mobileNavModal);
+                // Removed the lines that re-asserted active tab visibility as per user request.
+                // This might cause the main content tab to disappear after closing the mobile menu.
             }
         });
 
         // Mobile nav buttons inside the modal
         mobileNavButtons.forEach(button => {
             button.addEventListener('click', () => {
-                switchTab(button.dataset.tab);
+                const selectedTab = button.dataset.tab;
+                console.log(`[MobileNavButton] Clicked tab: ${selectedTab}`);
+                switchTab(selectedTab); // This will correctly activate the tab and its content
                 closeModal(mobileNavModal); // Close the modal after selecting a tab
             });
         });
 
         // New: Event listener for the "Close" button at the bottom of the mobile nav modal
-        closeMobileNavBtnBottom.addEventListener('click', () => closeModal(mobileNavModal));
+        closeMobileNavBtnBottom.addEventListener('click', () => {
+            console.log(`[closeMobileNavBtnBottom] Clicked. currentActiveTabName at click: ${currentActiveTabName}`);
+            closeModal(mobileNavModal); 
+            // Removed the lines that re-asserted active tab visibility as per user request.
+            // This might cause the main content tab to disappear after closing the mobile menu.
+        });
 
         // Amount Available Help Modal Listeners
         amountAvailableHelpBtn.addEventListener('click', () => {
